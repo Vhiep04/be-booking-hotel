@@ -1,0 +1,275 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\BookingHotel\\be-booking-hotel\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\models\\applicationuser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\models\\applicationuser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\data\\dbinitializer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\data\\dbinitializer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\be-booking-hotel.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\be-booking-hotel.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\dtos\\authresponsedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\dtos\\authresponsedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\dtos\\logindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\dtos\\logindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\models\\hotelbookingcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\models\\hotelbookingcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\dtos\\registerdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\dtos\\registerdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\models\\facility.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\models\\facility.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\migrations\\20251111112746_updateidentitytables.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\migrations\\20251111112746_updateidentitytables.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\models\\room.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\models\\room.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|d:\\bookinghotel\\be-booking-hotel\\be-booking-hotel\\models\\hotelbookingdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{358ABAA0-94E7-438B-8EC7-570200C45F5B}|be-booking-hotel\\be-booking-hotel.csproj|solutionrelative:be-booking-hotel\\models\\hotelbookingdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 5,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "be-booking-hotel",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\be-booking-hotel.csproj",
+              "RelativeDocumentMoniker": "be-booking-hotel\\be-booking-hotel.csproj",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\be-booking-hotel.csproj",
+              "RelativeToolTip": "be-booking-hotel\\be-booking-hotel.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-11-20T03:27:08.014Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "HotelBookingDbContext.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\HotelBookingDbContext.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Models\\HotelBookingDbContext.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\HotelBookingDbContext.cs",
+              "RelativeToolTip": "be-booking-hotel\\Models\\HotelBookingDbContext.cs",
+              "ViewState": "AgIAAB0AAAAAAAAAAAAEwCkAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T17:04:45.396Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "20251111112746_UpdateIdentityTables.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Migrations\\20251111112746_UpdateIdentityTables.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Migrations\\20251111112746_UpdateIdentityTables.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Migrations\\20251111112746_UpdateIdentityTables.cs",
+              "RelativeToolTip": "be-booking-hotel\\Migrations\\20251111112746_UpdateIdentityTables.cs",
+              "ViewState": "AgIAAKAAAAAAAAAAAIBJwKEAAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T16:20:56.108Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "DbInitializer.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Data\\DbInitializer.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Data\\DbInitializer.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Data\\DbInitializer.cs",
+              "RelativeToolTip": "be-booking-hotel\\Data\\DbInitializer.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T10:53:28.716Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Controllers\\AuthController.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Controllers\\AuthController.cs",
+              "RelativeToolTip": "be-booking-hotel\\Controllers\\AuthController.cs",
+              "ViewState": "AgIAAOMAAAAAAAAAAAAAAOMAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T10:38:15.505Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Program.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Program.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Program.cs",
+              "RelativeToolTip": "be-booking-hotel\\Program.cs",
+              "ViewState": "AgIAACQAAAAAAAAAAAAAAE4AAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T10:28:04.016Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\appsettings.json",
+              "RelativeDocumentMoniker": "be-booking-hotel\\appsettings.json",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\appsettings.json",
+              "RelativeToolTip": "be-booking-hotel\\appsettings.json",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAABYAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-11-11T10:25:33.323Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "AuthResponseDto.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\DTOs\\AuthResponseDto.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\DTOs\\AuthResponseDto.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\DTOs\\AuthResponseDto.cs",
+              "RelativeToolTip": "be-booking-hotel\\DTOs\\AuthResponseDto.cs",
+              "ViewState": "AgIAAAEAAAAAAAAAAADwvwkAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T10:25:13.743Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "LoginDto.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\DTOs\\LoginDto.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\DTOs\\LoginDto.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\DTOs\\LoginDto.cs",
+              "RelativeToolTip": "be-booking-hotel\\DTOs\\LoginDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAsAAAA8AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T10:24:38.611Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "RegisterDto.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\DTOs\\RegisterDto.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\DTOs\\RegisterDto.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\DTOs\\RegisterDto.cs",
+              "RelativeToolTip": "be-booking-hotel\\DTOs\\RegisterDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T10:16:56.585Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Facility.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\Facility.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Models\\Facility.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\Facility.cs",
+              "RelativeToolTip": "be-booking-hotel\\Models\\Facility.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T10:13:45.373Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "Room.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\Room.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Models\\Room.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\Room.cs",
+              "RelativeToolTip": "be-booking-hotel\\Models\\Room.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAYwBgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T09:22:58.534Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "HotelBookingContext.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\HotelBookingContext.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Models\\HotelBookingContext.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\HotelBookingContext.cs",
+              "RelativeToolTip": "be-booking-hotel\\Models\\HotelBookingContext.cs",
+              "ViewState": "AgIAAB8AAAAAAAAAAAApwDsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T09:08:45.149Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ApplicationUser.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\ApplicationUser.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Models\\ApplicationUser.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Models\\ApplicationUser.cs",
+              "RelativeToolTip": "be-booking-hotel\\Models\\ApplicationUser.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T09:02:01.838Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "WeatherForecastController.cs",
+              "DocumentMoniker": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Controllers\\WeatherForecastController.cs",
+              "RelativeDocumentMoniker": "be-booking-hotel\\Controllers\\WeatherForecastController.cs",
+              "ToolTip": "D:\\BookingHotel\\be-booking-hotel\\be-booking-hotel\\Controllers\\WeatherForecastController.cs",
+              "RelativeToolTip": "be-booking-hotel\\Controllers\\WeatherForecastController.cs",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAAwA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T08:50:25.493Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
