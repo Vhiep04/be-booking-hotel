@@ -1,6 +1,9 @@
 ﻿using be_booking_hotel.DTOs;
+using be_booking_hotel.DTOs.Auth;
 using be_booking_hotel.Models;
-using Microsoft.AspNetCore.Identity;
+using be_booking_hotel.Repositories.Interfaces;
+using be_booking_hotel.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,22 +16,28 @@ namespace be_booking_hotel.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
+        private readonly IOtpService _otpService;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            IConfiguration configuration)
+            IAuthRepository authRepository,
+            IConfiguration configuration,
+            IEmailService emailService,
+            IOtpService otpService,
+            ILogger<AuthController> logger)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
+            _authRepository = authRepository;
             _configuration = configuration;
+            _emailService = emailService;
+            _otpService = otpService;
+            _logger = logger;
         }
 
         /// <summary>
-        /// Đăng ký tài khoản mới
+        /// Đăng ký tài khoản mới - Gửi OTP qua email
         /// </summary>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
@@ -41,13 +50,50 @@ namespace be_booking_hotel.Controllers
                     errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
                 });
 
-            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            var existingUser = await _authRepository.FindByEmailAsync(model.Email);
             if (existingUser != null)
             {
+                // Nếu user đã tồn tại nhưng chưa verify email
+                if (!existingUser.EmailConfirmed)
+                {
+                    // Generate OTP mới và gửi lại
+                    var newOtp = _otpService.GenerateOtp();
+                    _otpService.SaveOtpToSession(existingUser.Email, existingUser.Id, newOtp, "Registration");
+
+                    try
+                    {
+                        await _emailService.SendOtpEmailAsync(
+                            existingUser.Email,
+                            $"{existingUser.FirstName} {existingUser.LastName}",
+                            newOtp
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Failed to send OTP: {ex.Message}");
+                        return StatusCode(500, new
+                        {
+                            success = false,
+                            message = "Failed to send verification email"
+                        });
+                    }
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Email already registered but not verified. New OTP has been sent.",
+                        data = new
+                        {
+                            email = existingUser.Email,
+                            requiresVerification = true
+                        }
+                    });
+                }
+
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Email already registered",
+                    message = "Email already registered and verified"
                 });
             }
 
@@ -60,10 +106,11 @@ namespace be_booking_hotel.Controllers
                 PhoneNumber = model.PhoneNumber,
                 BirthDate = model.BirthDate,
                 AvatarUrl = null,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                EmailConfirmed = false
             };
 
-            var result = await _userManager.CreateAsync(user, model.Password);
+            var result = await _authRepository.CreateUserAsync(user, model.Password);
 
             if (!result.Succeeded)
             {
@@ -75,24 +122,194 @@ namespace be_booking_hotel.Controllers
                 });
             }
 
-            await _userManager.AddToRoleAsync(user, "User");
+            await _authRepository.AddToRoleAsync(user, "User");
+
+            // Generate và lưu OTP vào session
+            var otpCode = _otpService.GenerateOtp();
+            _otpService.SaveOtpToSession(user.Email, user.Id, otpCode, "Registration");
+
+            // Gửi email OTP
+            try
+            {
+                await _emailService.SendOtpEmailAsync(
+                    user.Email,
+                    $"{user.FirstName} {user.LastName}",
+                    otpCode
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to send OTP email: {ex.Message}");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Registration successful but failed to send verification email. Please use resend OTP.",
+                    data = new { email = user.Email }
+                });
+            }
 
             return Ok(new
             {
                 success = true,
-                message = "Registration successful",
+                message = "Registration successful. Please check your email for OTP verification code.",
                 data = new
                 {
-                    userId = user.Id,
                     email = user.Email,
-                    firstName = user.FirstName,
-                    lastName = user.LastName,
+                    expiresIn = "5 minutes"
                 }
             });
         }
 
         /// <summary>
-        /// Đăng nhập và nhận JWT token
+        /// Xác thực OTP sau khi đăng ký
+        /// </summary>
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid data",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+
+            var isValid = _otpService.ValidateOtp(model.Email, model.OtpCode, "Registration");
+
+            if (!isValid)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid or expired OTP code"
+                });
+            }
+
+            var user = await _authRepository.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "User not found"
+                });
+            }
+
+            // Xác thực email
+            user.EmailConfirmed = true;
+            await _authRepository.UpdateUserAsync(user);
+
+            // Gửi email chào mừng
+            try
+            {
+                await _emailService.SendWelcomeEmailAsync(
+                    user.Email!,
+                    $"{user.FirstName} {user.LastName}"
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Failed to send welcome email: {ex.Message}");
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = "Email verified successfully. You can now login.",
+                data = new
+                {
+                    userId = user.Id,
+                    email = user.Email,
+                    isVerified = user.EmailConfirmed
+                }
+            });
+        }
+
+        /// <summary>
+        /// Gửi lại OTP
+        /// </summary>
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp([FromBody] ResendOtpDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid data",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+
+            var user = await _authRepository.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Email not found"
+                });
+            }
+
+            if (user.EmailConfirmed)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Email already verified"
+                });
+            }
+
+            // Check rate limit
+            if (!_otpService.CanResendOtp(model.Email, "Registration"))
+            {
+                var otpData = _otpService.GetOtpData(model.Email, "Registration");
+                var cooldownMinutes = int.Parse(_configuration["OtpSettings:ResendCooldownMinutes"] ?? "1");
+
+                return StatusCode(429, new
+                {
+                    success = false,
+                    message = $"Please wait {cooldownMinutes} minute(s) before requesting a new OTP",
+                    remainingAttempts = 3 - (otpData?.ResendAttempts ?? 0)
+                });
+            }
+
+            // Generate OTP mới
+            var otpCode = _otpService.GenerateOtp();
+            _otpService.SaveOtpToSession(user.Email, user.Id, otpCode, "Registration");
+            _otpService.IncrementResendAttempt(user.Email, "Registration");
+
+            // Gửi email
+            try
+            {
+                await _emailService.SendOtpEmailAsync(
+                    user.Email,
+                    $"{user.FirstName} {user.LastName}",
+                    otpCode
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to send OTP: {ex.Message}");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Failed to send OTP email",
+                    error = ex.Message
+                });
+            }
+            return Ok(new
+            {
+                success = true,
+                message = "OTP has been resent to your email",
+                data = new
+                {
+                    email = user.Email,
+                    expiresIn = "5 minutes"
+                }
+            });
+        }
+
+        /// <summary>
+        /// Đăng nhập - Chỉ cho phép nếu đã verify email
         /// </summary>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto model)
@@ -105,7 +322,7 @@ namespace be_booking_hotel.Controllers
                     errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
                 });
 
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            var user = await _authRepository.FindByEmailAsync(model.Email);
             if (user == null)
             {
                 return Unauthorized(new
@@ -115,7 +332,19 @@ namespace be_booking_hotel.Controllers
                 });
             }
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+            // Kiểm tra email đã verify chưa
+            if (!user.EmailConfirmed)
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = "Please verify your email before logging in",
+                    requiresVerification = true,
+                    email = user.Email
+                });
+            }
+
+            var result = await _authRepository.CheckPasswordSignInAsync(user, model.Password);
 
             if (!result.Succeeded)
             {
@@ -150,10 +379,10 @@ namespace be_booking_hotel.Controllers
         }
 
         /// <summary>
-        /// Lấy thông tin user hiện tại (cần authentication)
+        /// Lấy thông tin user hiện tại
         /// </summary>
         [HttpGet("me")]
-        [Microsoft.AspNetCore.Authorization.Authorize]
+        [Authorize]
         public async Task<IActionResult> GetCurrentUser()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -166,7 +395,7 @@ namespace be_booking_hotel.Controllers
                 });
             }
 
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await _authRepository.FindByIdAsync(userId);
             if (user == null)
             {
                 return NotFound(new
@@ -183,6 +412,8 @@ namespace be_booking_hotel.Controllers
                 {
                     userId = user.Id,
                     email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
                     fullName = $"{user.FirstName} {user.LastName}".Trim(),
                     phoneNumber = user.PhoneNumber,
                     birthDate = user.BirthDate,
@@ -199,17 +430,16 @@ namespace be_booking_hotel.Controllers
                 Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!));
 
             var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Email, user.Email!),
-                new Claim(ClaimTypes.GivenName, user.FirstName),
-                new Claim(ClaimTypes.Surname, user.LastName),
-                new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(ClaimTypes.Email, user.Email!),
+            new Claim(ClaimTypes.GivenName, user.FirstName),
+            new Claim(ClaimTypes.Surname, user.LastName),
+            new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
 
-            // Thêm roles vào claims
-            var roles = await _userManager.GetRolesAsync(user);
+            var roles = await _authRepository.GetRolesAsync(user);
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
             var credentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);

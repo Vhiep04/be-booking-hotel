@@ -1,4 +1,4 @@
-﻿namespace be_booking_hotel.DTOs
+﻿namespace be_booking_hotel.DTOs.Auth
 {
     public class AuthResponseDto
     {

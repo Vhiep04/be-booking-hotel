@@ -5,14 +5,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using be_booking_hotel.Models;
+using be_booking_hotel.Repositories.Implementations;
+using be_booking_hotel.Repositories.Interfaces;
+using be_booking_hotel.Services.Implements;
+using be_booking_hotel.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. C?u hình DbContext
+// 1. Add DbContext
 builder.Services.AddDbContext<HotelBookingContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. C?u hình Identity
+// 2.  Add Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     // Password settings
@@ -31,6 +35,18 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<HotelBookingContext>()
 .AddDefaultTokenProviders();
+
+// ? QUAN TR?NG: Thêm 2 dòng này cho Session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// Add HttpContextAccessor (cho OtpService)
+builder.Services.AddHttpContextAccessor();
 
 // 3. C?u hình JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -54,6 +70,13 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
     };
 });
+
+// Register Repositories
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+
+// Register Services
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IOtpService, OtpService>();
 
 // 4. Thêm Authorization
 builder.Services.AddAuthorization();
@@ -127,6 +150,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// QUAN TR?NG: Session ph?i tr??c Authentication
+app.UseSession();
+
 app.UseCors("AllowAll");
 
 // QUAN TRONG: Thu tu phai dúng
