@@ -36,9 +36,9 @@ namespace be_booking_hotel.Controllers
             _logger = logger;
         }
 
-        /// <summary>
+        
         /// Đăng ký tài khoản mới - Gửi OTP qua email
-        /// </summary>
+        
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
@@ -160,9 +160,9 @@ namespace be_booking_hotel.Controllers
             });
         }
 
-        /// <summary>
+        
         /// Xác thực OTP sau khi đăng ký
-        /// </summary>
+        
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto model)
         {
@@ -215,7 +215,7 @@ namespace be_booking_hotel.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Email verified successfully. You can now login.",
+                message = "Email verified successfully. You can login now.",
                 data = new
                 {
                     userId = user.Id,
@@ -225,9 +225,7 @@ namespace be_booking_hotel.Controllers
             });
         }
 
-        /// <summary>
         /// Gửi lại OTP
-        /// </summary>
         [HttpPost("resend-otp")]
         public async Task<IActionResult> ResendOtp([FromBody] ResendOtpDto model)
         {
@@ -308,9 +306,7 @@ namespace be_booking_hotel.Controllers
             });
         }
 
-        /// <summary>
         /// Đăng nhập - Chỉ cho phép nếu đã verify email
-        /// </summary>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
@@ -378,9 +374,8 @@ namespace be_booking_hotel.Controllers
             });
         }
 
-        /// <summary>
+        
         /// Lấy thông tin user hiện tại
-        /// </summary>
         [HttpGet("me")]
         [Authorize]
         public async Task<IActionResult> GetCurrentUser()

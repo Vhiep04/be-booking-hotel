@@ -1,4 +1,4 @@
-using be_booking_hotel.Models;
+ï»¿using be_booking_hotel.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -36,19 +36,23 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<HotelBookingContext>()
 .AddDefaultTokenProviders();
 
-// ? QUAN TR?NG: Thêm 2 dòng này cho Session
+// ? QUAN TR?NG: ThÃªm 2 dÃ²ng nÃ y cho Session
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.Name = ".HotelBooking.Session";
+
+    options.Cookie.SameSite = SameSiteMode.None; 
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
 // Add HttpContextAccessor (cho OtpService)
 builder.Services.AddHttpContextAccessor();
 
-// 3. C?u hình JWT Authentication
+// 3. C?u hÃ¬nh JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];
 
@@ -73,18 +77,20 @@ builder.Services.AddAuthentication(options =>
 
 // Register Repositories
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IHotelRepository, HotelRepository>();
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddScoped<IHotelService, HotelService>();
 
-// 4. Thêm Authorization
+// 4. ThÃªm Authorization
 builder.Services.AddAuthorization();
 
-// 5. Thêm Controllers
+// 5. ThÃªm Controllers
 builder.Services.AddControllers();
 
-// 6. C?u hình Swagger
+// 6. C?u hÃ¬nh Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -114,16 +120,23 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// 7. CORS 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "https://localhost:3000",
+                "https://localhost:5173"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .SetIsOriginAllowed(origin => true); 
     });
 });
+
 
 var app = builder.Build();
 
@@ -152,11 +165,11 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // QUAN TR?NG: Session ph?i tr??c Authentication
-app.UseSession();
 
 app.UseCors("AllowAll");
+app.UseSession();
 
-// QUAN TRONG: Thu tu phai dúng
+// QUAN TRONG: Thu tu phai dÃºng
 app.UseAuthentication();  // Ph?i ??t tr??c UseAuthorization
 app.UseAuthorization();
 
