@@ -25,6 +25,8 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
     public virtual DbSet<Payment> Payments { get; set; }
     public virtual DbSet<Reservation> Reservations { get; set; }
     public virtual DbSet<Room> Rooms { get; set; }
+    public virtual DbSet<HotelImage> HotelImages { get; set; }
+    public virtual DbSet<CityImage> CityImages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -179,7 +181,27 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_HotelImages_Hotels");
         });
+        // HotelImages configuration
+        modelBuilder.Entity<HotelImage>(entity =>
+        {
+            entity.HasKey(e => e.ImageId);
 
+            entity.HasOne(e => e.Hotel)
+                .WithMany(h => h.HotelImages)
+                .HasForeignKey(e => e.HotelId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CityImages configuration
+        modelBuilder.Entity<CityImage>(entity =>
+        {
+            entity.HasKey(e => e.ImageId);
+
+            entity.HasOne(e => e.City)
+                .WithMany(c => c.CityImages)
+                .HasForeignKey(e => e.CityId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         // ====================================
         // Payment Configuration
         // ====================================
