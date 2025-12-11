@@ -38,7 +38,6 @@ namespace be_booking_hotel.Controllers
 
         
         /// Đăng ký tài khoản mới - Gửi OTP qua email
-        
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
@@ -162,7 +161,6 @@ namespace be_booking_hotel.Controllers
 
         
         /// Xác thực OTP sau khi đăng ký
-        
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto model)
         {

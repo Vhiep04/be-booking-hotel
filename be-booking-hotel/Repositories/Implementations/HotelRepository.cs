@@ -143,5 +143,27 @@ namespace be_booking_hotel.Repositories.Implementations
 
             return distribution;
         }
+        // ✅ THÊM VÀO HotelRepository.cs
+        public async Task<Dictionary<int, int>> GetBookedRoomsCountAsync(int hotelId, DateOnly checkIn, DateOnly checkOut)
+        {
+            // Lấy tất cả reservations có khoảng thời gian trùng với checkIn/checkOut
+            var bookedRooms = await _context.Reservations
+                .Where(r =>
+                    r.Room.HotelId == hotelId &&
+                    r.PaymentStatus != "Cancelled" && // Loại bỏ đơn đã hủy
+                                                      // Điều kiện overlap: (Start1 <= End2) AND (End1 >= Start2)
+                    r.CheckInDate < checkOut &&
+                    r.CheckOutDate > checkIn
+                )
+                .GroupBy(r => r.RoomId)
+                .Select(g => new
+                {
+                    RoomId = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            return bookedRooms.ToDictionary(x => x.RoomId, x => x.Count);
+        }
     }
 }

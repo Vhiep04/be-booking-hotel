@@ -60,16 +60,41 @@ namespace be_booking_hotel.Controllers
         }
 
         /// <summary>
-        /// Lấy chi tiết hotel theo ID
+        /// Lấy chi tiết hotel theo ID với room filtering
         /// </summary>
         /// <param name="id">Hotel ID</param>
-        /// <returns>Hotel details</returns>
+        /// <param name="filter">Room filter parameters (dates, facilities, sort)</param>
+        /// <returns>Hotel details with filtered rooms</returns>
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetHotelById(int id)
+        public async Task<IActionResult> GetHotelById(
+            int id,
+            [FromQuery] RoomFilterDto filter)
         {
             try
             {
-                var hotel = await _hotelService.GetHotelDetailAsync(id);
+                // Validate dates nếu có
+                if (filter.CheckIn.HasValue && filter.CheckOut.HasValue)
+                {
+                    if (filter.CheckOut <= filter.CheckIn)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Check-out date must be after check-in date"
+                        });
+                    }
+
+                    if (filter.CheckIn < DateOnly.FromDateTime(DateTime.Today))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Check-in date cannot be in the past"
+                        });
+                    }
+                }
+
+                var hotel = await _hotelService.GetHotelDetailAsync(id, filter);
 
                 if (hotel == null)
                 {
@@ -84,7 +109,14 @@ namespace be_booking_hotel.Controllers
                 {
                     success = true,
                     message = "Hotel details retrieved successfully",
-                    data = hotel
+                    data = hotel,
+                    filters = new
+                    {
+                        appliedFacilities = filter.Facilities ?? new List<string>(),
+                        bedType = filter.BedType,
+                        sortBy = filter.SortBy,
+                        totalRoomsFound = hotel.Rooms.Count
+                    }
                 });
             }
             catch (Exception ex)
