@@ -9,6 +9,7 @@ using be_booking_hotel.Repositories.Implementations;
 using be_booking_hotel.Repositories.Interfaces;
 using be_booking_hotel.Services.Implements;
 using be_booking_hotel.Services.Interfaces;
+using be_booking_hotel.Services.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,11 +79,13 @@ builder.Services.AddAuthentication(options =>
 // Register Repositories
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IHotelRepository, HotelRepository>();
+builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IHotelService, HotelService>();
+builder.Services.AddScoped<IFacilityService, FacilityService>();
 
 // 4. Thêm Authorization
 builder.Services.AddAuthorization();
