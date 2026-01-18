@@ -28,6 +28,10 @@ namespace be_booking_hotel.Services.Implements
                 Location = h.Location,
                 Description = h.Description,
                 ImgUrl = h.ImgUrl,
+
+                Latitude = h.Latitude,
+                Longitude = h.Longitude,
+
                 CityId = h.CityId,
                 CityName = h.City.Name,
                 Country = h.City.Country,
@@ -62,6 +66,10 @@ namespace be_booking_hotel.Services.Implements
                 Location = hotel.Location,
                 Description = hotel.Description,
                 ImgUrl = hotel.ImgUrl,
+
+                Latitude = hotel.Latitude,
+                Longitude = hotel.Longitude,
+
                 CreatedAt = hotel.CreatedAt,
 
                 City = new CityDto
@@ -136,6 +144,12 @@ namespace be_booking_hotel.Services.Implements
             {
                 HotelId = hotelId,
                 HotelName = hotel!.Name,
+
+                HotelLocation = hotel.Location,
+                HotelDescription = hotel.Description,
+                HotelLatitude = hotel.Latitude,
+                HotelLongitude = hotel.Longitude,
+
                 Rooms = roomDtos,
                 TotalRooms = roomDtos.Count,
                 AvailableRooms = roomDtos.Count(r => r.IsAvailable),

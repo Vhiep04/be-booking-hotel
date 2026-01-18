@@ -135,5 +135,21 @@ namespace be_booking_hotel.Repositories
                 .OrderBy(img => img.DisplayOrder)
                 .ToListAsync();
         }
+
+        /// <summary>
+        /// Lấy TẤT CẢ hotels từ mọi city
+        /// </summary>
+        public async Task<List<Hotel>> GetAllHotelsAsync()
+        {
+            return await _context.Hotels
+                .Include(h => h.City) // Include City info
+                .Include(h => h.HotelImages.OrderBy(img => img.DisplayOrder))
+                .Include(h => h.Rooms)
+                    .ThenInclude(r => r.Facilities)
+                .Include(h => h.Feedbacks)
+                .OrderBy(h => h.City.Name)
+                    .ThenBy(h => h.Name)
+                .ToListAsync();
+        }
     }
 }

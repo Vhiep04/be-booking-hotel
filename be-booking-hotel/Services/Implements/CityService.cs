@@ -33,6 +33,20 @@ namespace be_booking_hotel.Services
             return cities.Select(MapToCityDto).ToList();
         }
 
+        /// <summary>
+        /// Lấy TẤT CẢ hotels với filtering (không giới hạn city)
+        /// </summary>
+        public async Task<AllHotelsResultDto> GetAllHotelsWithFilterAsync(HotelFilterDto filter)
+        {
+            var hotels = await _cityRepository.GetAllHotelsAsync();
+            var filteredHotels = ApplyFilters(hotels, filter);
+
+            return new AllHotelsResultDto
+            {
+                Hotels = filteredHotels.Select(MapToHotelInCityDto).ToList()
+            };
+        }
+
         public async Task<CityHotelsResultDto> GetCityHotelsWithFilterAsync(int cityId, HotelFilterDto filter)
         {
             var cityExists = await _cityRepository.CityExistsAsync(cityId);
@@ -119,6 +133,13 @@ namespace be_booking_hotel.Services
         {
             var query = hotels.AsQueryable();
 
+            // ✅ THÊM: Filter by CityName
+            if (!string.IsNullOrWhiteSpace(filter.CityName))
+            {
+                query = query.Where(h => h.City != null &&
+                                         h.City.Name.Contains(filter.CityName, StringComparison.OrdinalIgnoreCase));
+            }
+
             // Filter by date availability
             if (filter.CheckIn.HasValue && filter.CheckOut.HasValue)
             {
@@ -176,7 +197,6 @@ namespace be_booking_hotel.Services
 
             return filteredHotels;
         }
-
         private CityDto MapToCityDto(City city)
         {
             return new CityDto

@@ -27,6 +27,10 @@
     {
         public int HotelId { get; set; }
         public string HotelName { get; set; } = string.Empty;
+        public string? HotelLocation { get; set; }
+        public string? HotelDescription { get; set; }
+        public decimal? HotelLatitude { get; set; }
+        public decimal? HotelLongitude { get; set; }
         public List<RoomDto> Rooms { get; set; } = new();
         public int TotalRooms { get; set; }
         public int AvailableRooms { get; set; }

@@ -24,7 +24,7 @@ namespace be_booking_hotel.Repositories.Implementations
             try
             {
                 return await _context.Facilities
-                    .OrderBy(f => f.Name)
+                    .OrderBy(f => f.FacilityId)
                     .ToListAsync();
             }
             catch (Exception ex)

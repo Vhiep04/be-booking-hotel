@@ -7,24 +7,22 @@
         public string Location { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? ImgUrl { get; set; }
-
-        // City info
+        
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        
         public int CityId { get; set; }
         public string CityName { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
-
-        // Pricing info
+        
         public decimal MinPrice { get; set; }
         public decimal MaxPrice { get; set; }
-
-        // Rating info
+        
         public double? AverageRating { get; set; }
         public int TotalReviews { get; set; }
-
-        // Room availability
         public int TotalRooms { get; set; }
         public int AvailableRooms { get; set; }
-
+        
         public DateTime CreatedAt { get; set; }
     }
 }

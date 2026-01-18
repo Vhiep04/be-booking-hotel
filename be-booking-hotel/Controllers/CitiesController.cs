@@ -31,7 +31,6 @@ namespace be_booking_hotel.Controllers
             {
                 List<CityDto> cities;
 
-                // Nếu có search term thì search, không thì lấy tất cả
                 if (!string.IsNullOrWhiteSpace(name))
                 {
                     cities = await _cityService.SearchCitiesAsync(name);
@@ -107,9 +106,9 @@ namespace be_booking_hotel.Controllers
 
         /// <summary>
         /// Lấy danh sách hotels (tất cả hoặc theo city) với filtering
-        /// GET: api/cities/hotels (lấy tất cả hotels)
+        /// GET: api/cities/hotels (lấy TẤT CẢ hotels từ mọi city)
         /// GET: api/cities/hotels?cityId=1 (lấy hotels của city cụ thể)
-        /// GET: api/cities/hotels?cityId=1&checkIn=2024-01-01&checkOut=2024-01-05&minPrice=500000&maxPrice=5000000&bedType=King%20Bed&facilities=1,2,3&sortBy=price_asc
+        /// GET: api/cities/hotels?cityId=1&checkIn=2024-01-01&checkOut=2024-01-05&minPrice=500000&maxPrice=5000000
         /// </summary>
         [HttpGet("hotels")]
         public async Task<IActionResult> GetHotels(
@@ -118,17 +117,25 @@ namespace be_booking_hotel.Controllers
         {
             try
             {
-                // Nếu không có cityId, lấy tất cả hotels (có thể implement logic này trong service)
-                //if (!cityId.HasValue)
-                //{
-                //    // Tùy vào logic của bạn, có thể return tất cả hotels hoặc báo lỗi
-                //    return BadRequest(new
-                //    {
-                //        success = false,
-                //        message = "Please provide a cityId parameter"
-                //    });
-                //}
+                // Nếu KHÔNG có cityId → Lấy TẤT CẢ hotels
+                if (!cityId.HasValue)
+                {
+                    var allHotelsResult = await _cityService.GetAllHotelsWithFilterAsync(filter);
 
+                    return Ok(new
+                    {
+                        success = true,
+                        message = $"Found {allHotelsResult.Hotels.Count} hotels",
+                        data = new
+                        {
+                            hotels = allHotelsResult.Hotels,
+                            filters = filter,
+                            totalCount = allHotelsResult.Hotels.Count
+                        }
+                    });
+                }
+
+                // Nếu CÓ cityId → Lấy hotels của city cụ thể
                 var result = await _cityService.GetCityHotelsWithFilterAsync(cityId.Value, filter);
 
                 if (result.Hotels == null || !result.Hotels.Any())

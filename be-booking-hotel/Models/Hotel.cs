@@ -18,6 +18,8 @@ public partial class Hotel
     public string? ImgUrl { get; set; }
 
     public DateTime CreatedAt { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
 
     public virtual City City { get; set; } = null!;
 

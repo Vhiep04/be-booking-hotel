@@ -110,4 +110,9 @@
         public string Name { get; set; }
         public int Count { get; set; }
     }
+
+    public class AllHotelsResultDto
+    {
+        public List<HotelInCityDto> Hotels { get; set; } = new();
+    }
 }
