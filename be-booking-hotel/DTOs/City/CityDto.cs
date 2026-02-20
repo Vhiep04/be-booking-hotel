@@ -43,6 +43,8 @@
         public string Name { get; set; }
         public string Location { get; set; }
         public string? Description { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
         public decimal MinPricePerNight { get; set; }
         public decimal MaxPricePerNight { get; set; }
         public string? PrimaryImageUrl { get; set; }

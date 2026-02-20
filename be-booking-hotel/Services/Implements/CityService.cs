@@ -237,6 +237,10 @@ namespace be_booking_hotel.Services
                 Name = hotel.Name,
                 Location = hotel.Location ?? string.Empty,
                 Description = hotel.Description,
+
+                Latitude = hotel.Latitude,
+                Longitude = hotel.Longitude,
+
                 MinPricePerNight = rooms.Any() ? rooms.Min(r => r.PricePerNight) : 0,
                 MaxPricePerNight = rooms.Any() ? rooms.Max(r => r.PricePerNight) : 0,
                 PrimaryImageUrl = primaryImage?.ImageUrl ?? hotel.ImgUrl,
