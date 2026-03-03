@@ -90,6 +90,8 @@ builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IHotelService, HotelService>();
 builder.Services.AddScoped<IFacilityService, FacilityService>();
 builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<IVnPayService, VnPayService>();
+
 
 // 4. Thêm Authorization
 builder.Services.AddAuthorization();
