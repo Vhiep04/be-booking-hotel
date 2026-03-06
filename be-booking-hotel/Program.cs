@@ -83,6 +83,7 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IHotelRepository, HotelRepository>();
 builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
 builder.Services.AddScoped<ICityRepository, CityRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -91,6 +92,7 @@ builder.Services.AddScoped<IHotelService, HotelService>();
 builder.Services.AddScoped<IFacilityService, FacilityService>();
 builder.Services.AddScoped<ICityService, CityService>();
 builder.Services.AddScoped<IVnPayService, VnPayService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 
 // 4. Thêm Authorization
