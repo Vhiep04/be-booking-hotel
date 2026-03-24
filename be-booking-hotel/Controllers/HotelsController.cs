@@ -138,5 +138,46 @@ namespace be_booking_hotel.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Lấy chi tiết 1 room của hotel
+        /// </summary>
+        /// <param name="id">Hotel ID</param>
+        /// <param name="roomId">Room ID</param>
+        /// <returns>Room detail</returns>
+        [HttpGet("{id}/rooms/{roomId}")]
+        public async Task<IActionResult> GetRoomById(int id, int roomId)
+        {
+            try
+            {
+                var room = await _hotelService.GetRoomByIdAsync(id, roomId);
+
+                if (room == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Room with ID {roomId} not found in hotel {id}"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Room details retrieved successfully",
+                    data = room
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting room {RoomId} for hotel {HotelId}", roomId, id);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "An error occurred while retrieving room details",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

@@ -23,5 +23,6 @@ namespace be_booking_hotel.Repositories.Interfaces
 
         /// Tính rating distribution
         Task<Dictionary<int, int>> GetRatingDistributionAsync(int hotelId);
+        Task<Room?> GetRoomByIdAsync(int hotelId, int roomId);
     }
 }

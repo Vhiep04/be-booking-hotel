@@ -159,5 +159,29 @@ namespace be_booking_hotel.Services.Implements
 
             return roomList;
         }
+
+        public async Task<RoomDto?> GetRoomByIdAsync(int hotelId, int roomId)
+        {
+            var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
+            if (!hotelExists)
+                return null;
+
+            var room = await _hotelRepository.GetRoomByIdAsync(hotelId, roomId);
+            if (room == null)
+                return null;
+
+            return new RoomDto
+            {
+                RoomId = room.RoomId,
+                HotelId = room.HotelId,
+                RoomType = room.RoomType,
+                PricePerNight = room.PricePerNight,
+                Capacity = room.Capacity,
+                ImgUrl = room.ImgUrl,
+                Facilities = room.Facilities.Select(f => f.Name).ToList(),
+                IsAvailable = true,   // TODO: Check reservations
+                BookedDays = 0        // TODO: Calculate from reservations
+            };
+        }
     }
 }

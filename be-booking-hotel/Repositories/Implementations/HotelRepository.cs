@@ -143,5 +143,12 @@ namespace be_booking_hotel.Repositories.Implementations
 
             return distribution;
         }
+
+        public async Task<Room?> GetRoomByIdAsync(int hotelId, int roomId)
+        {
+            return await _context.Rooms
+                .Include(r => r.Facilities)
+                .FirstOrDefaultAsync(r => r.HotelId == hotelId && r.RoomId == roomId);
+        }
     }
 }

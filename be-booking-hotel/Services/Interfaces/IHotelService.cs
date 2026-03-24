@@ -13,5 +13,7 @@ namespace be_booking_hotel.Services.Interfaces
 
         /// Lấy danh sách rooms của hotel
         Task<RoomListDto?> GetHotelRoomsAsync(int hotelId);
+
+        Task<RoomDto?> GetRoomByIdAsync(int hotelId, int roomId);
     }
 }
