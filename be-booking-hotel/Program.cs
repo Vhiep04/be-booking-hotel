@@ -12,6 +12,10 @@ using be_booking_hotel.Services.Interfaces;
 using be_booking_hotel.Services.Implementations;
 using be_booking_hotel.Repositories;
 using be_booking_hotel.Services;
+using be_booking_hotel.Repositories.Admin.Interfaces;
+using be_booking_hotel.Repositories.Admin;
+using be_booking_hotel.Services.Admin.Interfaces;
+using be_booking_hotel.Services.Admin;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +88,15 @@ builder.Services.AddScoped<IHotelRepository, HotelRepository>();
 builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
 builder.Services.AddScoped<ICityRepository, CityRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAdminCityRepository, AdminCityRepository>();
+builder.Services.AddScoped<IAdminHotelRepository, AdminHotelRepository>();
+builder.Services.AddScoped<IAdminRoomRepository, AdminRoomRepository>();
+builder.Services.AddScoped<IAdminFacilityRepository, AdminFacilityRepository>();
+builder.Services.AddScoped<IAdminReservationRepository, AdminReservationRepository>();
+builder.Services.AddScoped<IAdminFeedbackRepository, AdminFeedbackRepository>();
+builder.Services.AddScoped<IAdminHotelImageRepository, AdminHotelImageRepository>();
+builder.Services.AddScoped<IAdminCityImageRepository, AdminCityImageRepository>();
+builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -93,6 +106,14 @@ builder.Services.AddScoped<IFacilityService, FacilityService>();
 builder.Services.AddScoped<ICityService, CityService>();
 builder.Services.AddScoped<IVnPayService, VnPayService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<IAdminCityService, AdminCityService>();
+builder.Services.AddScoped<IAdminHotelService, AdminHotelService>();
+builder.Services.AddScoped<IAdminRoomService, AdminRoomService>();
+builder.Services.AddScoped<IAdminFacilityService, AdminFacilityService>();
+builder.Services.AddScoped<IAdminReservationService, AdminReservationService>();
+builder.Services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
 
 // 4. Thêm Authorization
