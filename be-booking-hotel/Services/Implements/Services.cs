@@ -692,6 +692,11 @@ public class AdminDashboardService : IAdminDashboardService
         RevenueThisMonth = await _reservationRepo.GetRevenueThisMonthAsync(),
         AverageRating = await _feedbackRepo.GetAverageRatingAsync(),
         RevenueChart = await _reservationRepo.GetRevenueChartAsync(12),
-        TopHotels = await _repo.GetTopHotelsAsync(5)
+        TopHotels = await _repo.GetTopHotelsAsync(5),
+        CompletedReservations = await _reservationRepo.CountByStatusAsync("Completed"),
+        CancelledReservations = await _reservationRepo.CountByStatusAsync("Cancelled"),
+        RecentBookings = await _repo.GetRecentBookingsAsync(10),
+        PopularCities = await _repo.GetPopularCitiesAsync(5),
+        RecentActivities = await _repo.GetRecentActivitiesAsync(10),
     };
 }

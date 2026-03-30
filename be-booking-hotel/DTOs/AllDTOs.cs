@@ -1,6 +1,5 @@
 namespace be_booking_hotel.DTOs.Admin;
 
-// ===== COMMON =====
 public class AdminPagedResult<T>
 {
     public List<T> Items { get; set; } = new();
@@ -228,6 +227,35 @@ public class AdminUpdateFeedbackRequest
 }
 
 // ===== DASHBOARD =====
+public class AdminRecentBookingDto
+{
+    public int ReservationId { get; set; }
+    public string BookingCode { get; set; }  // "BK-2024-001"
+    public string HotelName { get; set; }
+    public string HotelImage { get; set; }
+    public string CityName { get; set; }
+    public string GuestName { get; set; }
+    public string GuestAvatar { get; set; } // chữ cái đầu
+    public DateTime CheckInDate { get; set; }
+    public DateTime CheckOutDate { get; set; }
+    public decimal Amount { get; set; }
+    public string Status { get; set; }
+}
+
+public class AdminPopularCityDto
+{
+    public int CityId { get; set; }
+    public string Name { get; set; }
+    public int HotelCount { get; set; }
+    public int BookingCount { get; set; }
+    public int Percentage { get; set; }  // tính từ BookingCount / Total * 100
+}
+public class AdminActivityDto
+{
+    public string Message { get; set; } = string.Empty;
+    public DateTime Time { get; set; }
+    public string Type { get; set; } = string.Empty; // "booking" | "payment"
+}
 public class AdminDashboardStats
 {
     public int TotalUsers { get; set; }
@@ -242,6 +270,11 @@ public class AdminDashboardStats
     public double AverageRating { get; set; }
     public List<AdminRevenueByMonthDto> RevenueChart { get; set; } = new();
     public List<AdminTopHotelDto> TopHotels { get; set; } = new();
+    public int CompletedReservations { get; set; }   // donut chart
+    public int CancelledReservations { get; set; }   // donut chart
+    public List<AdminRecentBookingDto> RecentBookings { get; set; } = new(); // bảng cuối
+    public List<AdminPopularCityDto> PopularCities { get; set; } = new();   // progress bar
+    public List<AdminActivityDto> RecentActivities { get; set; } = new();
 }
 
 public class AdminRevenueByMonthDto
@@ -258,6 +291,7 @@ public class AdminTopHotelDto
     public int HotelId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string CityName { get; set; } = string.Empty;
+    public string? ImgUrl { get; set; }
     public int ReservationCount { get; set; }
     public decimal Revenue { get; set; }
     public double AverageRating { get; set; }

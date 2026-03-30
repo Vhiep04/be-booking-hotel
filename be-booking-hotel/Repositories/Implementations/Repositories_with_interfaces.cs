@@ -1,4 +1,4 @@
-using be_booking_hotel.DTOs.Admin;
+﻿using be_booking_hotel.DTOs.Admin;
 using be_booking_hotel.Models;
 using be_booking_hotel.Repositories.Admin.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -510,4 +510,92 @@ public class AdminDashboardRepository : IAdminDashboardRepository
                     : 0
             })
             .ToListAsync();
+
+    public async Task<List<AdminRecentBookingDto>> GetRecentBookingsAsync(int count) =>
+        await _ctx.Reservations
+            .Include(r => r.Room).ThenInclude(room => room.Hotel).ThenInclude(h => h.City)
+            .Include(r => r.Room).ThenInclude(room => room.Hotel).ThenInclude(h => h.HotelImages)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(count)
+            .Select(r => new AdminRecentBookingDto
+            {
+                ReservationId = r.ReservationId,
+                BookingCode = $"BK-{r.CreatedAt.Year}-{r.ReservationId:D3}",
+                HotelName = r.Room.Hotel.Name,
+                HotelImage = r.Room.Hotel.HotelImages
+                    .Where(i => i.IsPrimary == true)
+                    .Select(i => i.ImageUrl)
+                    .FirstOrDefault() ?? r.Room.Hotel.ImgUrl ?? "",
+                CityName = r.Room.Hotel.City.Name,
+                GuestName = r.UserId,  // join với AspNetUsers ở service layer
+                CheckInDate = r.CheckInDate.ToDateTime(TimeOnly.MinValue),
+                CheckOutDate = r.CheckOutDate.ToDateTime(TimeOnly.MinValue),
+                Amount = r.TotalPrice,
+                Status = r.PaymentStatus ?? "Pending"
+            })
+            .ToListAsync();
+
+    public async Task<List<AdminPopularCityDto>> GetPopularCitiesAsync(int count)
+    {
+        var totalBookings = await _ctx.Reservations.CountAsync();
+
+        return await _ctx.Cities
+            .Include(c => c.Hotels)
+                .ThenInclude(h => h.Rooms)
+                    .ThenInclude(r => r.Reservations)
+            .Select(c => new
+            {
+                c.CityId,
+                c.Name,
+                HotelCount = c.Hotels.Count,
+                BookingCount = c.Hotels
+                    .SelectMany(h => h.Rooms)
+                    .SelectMany(r => r.Reservations)
+                    .Count()
+            })
+            .OrderByDescending(c => c.BookingCount)
+            .Take(count)
+            .Select(c => new AdminPopularCityDto
+            {
+                CityId = c.CityId,
+                Name = c.Name,
+                HotelCount = c.HotelCount,
+                BookingCount = c.BookingCount,
+                Percentage = totalBookings > 0
+                    ? (int)Math.Round((double)c.BookingCount / totalBookings * 100)
+                    : 0
+            })
+            .ToListAsync();
+    }
+    public async Task<List<AdminActivityDto>> GetRecentActivitiesAsync(int count)
+    {
+        var bookings = await _ctx.Reservations
+            .Include(r => r.Room).ThenInclude(room => room.Hotel)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(5)
+            .Select(r => new AdminActivityDto
+            {
+                Message = $"New booking at {r.Room.Hotel.Name}",
+                Time = r.CreatedAt,
+                Type = "booking"
+            })
+            .ToListAsync();
+
+        var payments = await _ctx.Payments
+            .OrderByDescending(p => p.PaymentDate)
+            .Take(5)
+            .Select(p => new AdminActivityDto
+            {
+                Message = $"Payment received - ${p.Amount}",
+                Time = p.PaymentDate,  // DateTime non-nullable, dùng thẳng
+                Type = "payment"
+            })
+            .ToListAsync();
+
+        return bookings
+            .Concat(payments)
+            .OrderByDescending(a => a.Time)
+            .Take(count)
+            .ToList();
+    }
 }

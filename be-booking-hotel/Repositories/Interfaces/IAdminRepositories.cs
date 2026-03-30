@@ -109,4 +109,7 @@ public interface IAdminDashboardRepository
     Task<int> CountRoomsAsync();
     Task<int> CountReservationsAsync();
     Task<List<AdminTopHotelDto>> GetTopHotelsAsync(int count);
+    Task<List<AdminRecentBookingDto>> GetRecentBookingsAsync(int count);
+    Task<List<AdminPopularCityDto>> GetPopularCitiesAsync(int count);
+    Task<List<AdminActivityDto>> GetRecentActivitiesAsync(int count);
 }
