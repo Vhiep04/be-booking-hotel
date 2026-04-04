@@ -16,6 +16,7 @@ using be_booking_hotel.Repositories.Admin.Interfaces;
 using be_booking_hotel.Repositories.Admin;
 using be_booking_hotel.Services.Admin.Interfaces;
 using be_booking_hotel.Services.Admin;
+using be_booking_hotel.Repositories.Implements;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,6 +98,7 @@ builder.Services.AddScoped<IAdminFeedbackRepository, AdminFeedbackRepository>();
 builder.Services.AddScoped<IAdminHotelImageRepository, AdminHotelImageRepository>();
 builder.Services.AddScoped<IAdminCityImageRepository, AdminCityImageRepository>();
 builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();

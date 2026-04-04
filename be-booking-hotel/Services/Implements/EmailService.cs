@@ -2,6 +2,7 @@
 using MailKit.Security;
 using MimeKit;
 using MailKit.Net.Smtp;
+using be_booking_hotel.DTOs.Payment;
 
 
 namespace be_booking_hotel.Services.Implements
@@ -164,6 +165,87 @@ namespace be_booking_hotel.Services.Implements
                 _logger.LogError($"Failed to send email to {toEmail}: {ex.Message}");
                 throw;
             }
+        }
+
+        public async Task SendPaymentReceiptAsync(string toEmail, string recipientName, SendReceiptRequest receipt)
+        {
+            var subject = $"Biên lai thanh toán #{receipt.TransactionId} - Hotel Booking";
+            var formattedAmount = string.Format("{0:N0}", receipt.Amount);
+            var body = $@"
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .amount-box {{ background: #f0fdf4; border: 2px solid #10b981; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }}
+                .amount {{ font-size: 32px; font-weight: bold; color: #059669; }}
+                .info-table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                .info-table tr {{ border-bottom: 1px solid #e5e7eb; }}
+                .info-table tr:last-child {{ border-bottom: none; }}
+                .info-table td {{ padding: 10px 8px; font-size: 14px; }}
+                .info-table td:first-child {{ color: #6b7280; width: 45%; }}
+                .info-table td:last-child {{ font-weight: 600; color: #111827; text-align: right; }}
+                .badge {{ background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }}
+                .footer {{ text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>🏨 Hotel Booking</h1>
+                    <p style='margin:0; opacity:0.9;'>Payment Receipt</p>
+                </div>
+                <div class='content'>
+                    <h2>Xin chào {recipientName}!</h2>
+                    <p>Thanh toán của bạn đã được xử lý thành công. Dưới đây là chi tiết giao dịch:</p>
+
+                    <div class='amount-box'>
+                        <p style='margin:0; color:#6b7280; font-size:13px;'>SỐ TIỀN ĐÃ THANH TOÁN</p>
+                        <div class='amount'>{formattedAmount} VND</div>
+                    </div>
+
+                    <table class='info-table'>
+                        <tr>
+                            <td>Mô tả đơn hàng</td>
+                            <td>{receipt.OrderDescription}</td>
+                        </tr>
+                        <tr>
+                            <td>Mã giao dịch</td>
+                            <td style='color:#059669;'>{receipt.TransactionId}</td>
+                        </tr>
+                        <tr>
+                            <td>Mã đơn hàng</td>
+                            <td>{receipt.OrderId}</td>
+                        </tr>
+                        <tr>
+                            <td>Phương thức thanh toán</td>
+                            <td>{receipt.PaymentMethod}</td>
+                        </tr>
+                        <tr>
+                            <td>Trạng thái</td>
+                            <td><span class='badge'>✓ Thành công</span></td>
+                        </tr>
+                        <tr>
+                            <td>Thời gian</td>
+                            <td>{DateTime.Now:dd/MM/yyyy HH:mm:ss}</td>
+                        </tr>
+                    </table>
+
+                    <p style='color:#6b7280; font-size:13px;'>
+                        Nếu bạn có bất kỳ thắc mắc nào về giao dịch này, vui lòng liên hệ với chúng tôi kèm mã giao dịch <strong>{receipt.TransactionId}</strong>.
+                    </p>
+                </div>
+                <div class='footer'>
+                    <p>© {DateTime.Now.Year} Hotel Booking System. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    ";
+
+            await SendEmailAsync(toEmail, subject, body);
         }
     }
 }
