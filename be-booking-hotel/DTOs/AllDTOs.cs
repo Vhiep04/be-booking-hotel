@@ -296,3 +296,25 @@ public class AdminTopHotelDto
     public decimal Revenue { get; set; }
     public double AverageRating { get; set; }
 }
+
+public class CloudinaryUploadResult
+{
+    public bool Success { get; set; }
+    public string? Url { get; set; }
+    public string? PublicId { get; set; }
+    public string? Error { get; set; }
+}
+public class UploadImageResponse
+{
+    /// <summary>URL Cloudinary - dùng để lưu vào DB (imageUrl field)</summary>
+    public string Url { get; set; } = "";
+
+    /// <summary>Public ID - dùng để xóa ảnh sau này</summary>
+    public string PublicId { get; set; } = "";
+}
+
+public class UploadImagesResponse
+{
+    public List<UploadImageResponse> Uploaded { get; set; } = new();
+    public int FailedCount { get; set; }
+}

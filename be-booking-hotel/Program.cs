@@ -17,6 +17,7 @@ using be_booking_hotel.Repositories.Admin;
 using be_booking_hotel.Services.Admin.Interfaces;
 using be_booking_hotel.Services.Admin;
 using be_booking_hotel.Repositories.Implements;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,6 +117,7 @@ builder.Services.AddScoped<IAdminFacilityService, AdminFacilityService>();
 builder.Services.AddScoped<IAdminReservationService, AdminReservationService>();
 builder.Services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddSingleton<ICloudinaryService, CloudinaryService>();
 
 
 // 4. Thêm Authorization
@@ -169,6 +171,11 @@ builder.Services.AddCors(options =>
             .AllowCredentials()
             .SetIsOriginAllowed(origin => true); 
     });
+});
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 50 * 1024 * 1024;
 });
 
 
