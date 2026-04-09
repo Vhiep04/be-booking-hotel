@@ -70,7 +70,7 @@ public class AdminCityRepository : AdminBaseRepository<City>, IAdminCityReposito
 
     public async Task<City?> GetWithDetailsAsync(int id) =>
         await _ctx.Cities
-            .Include(c => c.Hotels).ThenInclude(h => h.Rooms)
+            .Include(c => c.Hotels).ThenInclude(h => h.RoomTypes)
             .Include(c => c.CityImages)
             .FirstOrDefaultAsync(c => c.CityId == id);
 
@@ -91,7 +91,7 @@ public class AdminHotelRepository : AdminBaseRepository<Hotel>, IAdminHotelRepos
     {
         var query = _ctx.Hotels
             .Include(h => h.City)
-            .Include(h => h.Rooms)
+            .Include(h => h.RoomTypes)
             .Include(h => h.Feedbacks)
             .Include(h => h.HotelImages)
             .AsQueryable();
@@ -114,7 +114,7 @@ public class AdminHotelRepository : AdminBaseRepository<Hotel>, IAdminHotelRepos
     public async Task<Hotel?> GetWithDetailsAsync(int id) =>
         await _ctx.Hotels
             .Include(h => h.City)
-            .Include(h => h.Rooms).ThenInclude(r => r.Facilities)
+            .Include(h => h.RoomTypes).ThenInclude(r => r.Facilities)
             .Include(h => h.HotelImages)
             .Include(h => h.Feedbacks)
             .FirstOrDefaultAsync(h => h.HotelId == id);
@@ -130,19 +130,19 @@ public class AdminRoomRepository : AdminBaseRepository<Room>, IAdminRoomReposito
     {
         var query = _ctx.Rooms
             .Include(r => r.Hotel).ThenInclude(h => h.City)
-            .Include(r => r.Facilities)
+            .Include(r => r.RoomType).ThenInclude(rt => rt.Facilities)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(r => r.RoomType.Contains(search) || r.Hotel.Name.Contains(search));
+            query = query.Where(r => r.RoomType.TypeName.Contains(search) || r.Hotel.Name.Contains(search));
         if (hotelId.HasValue)
             query = query.Where(r => r.HotelId == hotelId.Value);
         if (!string.IsNullOrWhiteSpace(roomType))
-            query = query.Where(r => r.RoomType == roomType);
+            query = query.Where(r => r.RoomType.TypeName == roomType);
 
         var total = await query.CountAsync();
         var items = await query
-            .OrderBy(r => r.Hotel.Name).ThenBy(r => r.PricePerNight)
+            .OrderBy(r => r.Hotel.Name).ThenBy(r => r.RoomType.PricePerNight)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -153,29 +153,29 @@ public class AdminRoomRepository : AdminBaseRepository<Room>, IAdminRoomReposito
     public async Task<Room?> GetWithFacilitiesAsync(int id) =>
         await _ctx.Rooms
             .Include(r => r.Hotel).ThenInclude(h => h.City)
-            .Include(r => r.Facilities)
+            .Include(r => r.RoomType).ThenInclude(rt => rt.Facilities)
             .FirstOrDefaultAsync(r => r.RoomId == id);
 
     public async Task<List<Room>> GetByHotelAsync(int hotelId) =>
         await _ctx.Rooms
-            .Include(r => r.Facilities)
+            .Include(r => r.RoomType).ThenInclude(rt => rt.Facilities)
             .Where(r => r.HotelId == hotelId)
-            .OrderBy(r => r.PricePerNight)
+            .OrderBy(r => r.RoomType.PricePerNight)
             .ToListAsync();
 
-    public async Task UpdateFacilitiesAsync(int roomId, List<int> facilityIds)
+    public async Task UpdateFacilitiesAsync(int roomTypeId, List<int> facilityIds)
     {
-        var room = await _ctx.Rooms
-            .Include(r => r.Facilities)
-            .FirstOrDefaultAsync(r => r.RoomId == roomId);
-        if (room == null) return;
+        var roomType = await _ctx.RoomTypes
+            .Include(rt => rt.Facilities)
+            .FirstOrDefaultAsync(rt => rt.RoomTypeId == roomTypeId);
+        if (roomType == null) return;
 
-        room.Facilities.Clear();
+        roomType.Facilities.Clear();
         var facilities = await _ctx.Facilities
             .Where(f => facilityIds.Contains(f.FacilityId))
             .ToListAsync();
         foreach (var f in facilities)
-            room.Facilities.Add(f);
+            roomType.Facilities.Add(f);
 
         await _ctx.SaveChangesAsync();
     }
@@ -215,7 +215,7 @@ public class AdminFacilityRepository : AdminBaseRepository<Facility>, IAdminFaci
     public async Task<bool> IsInUseAsync(int facilityId) =>
         await _ctx.Facilities
             .Where(f => f.FacilityId == facilityId)
-            .AnyAsync(f => f.Rooms.Any());
+            .AnyAsync(f => f.RoomTypes.Any());
 }
 
 // ===== RESERVATION =====
@@ -490,17 +490,18 @@ public class AdminDashboardRepository : IAdminDashboardRepository
     public async Task<List<AdminTopHotelDto>> GetTopHotelsAsync(int count) =>
         await _ctx.Hotels
             .Include(h => h.City)
-            .Include(h => h.Rooms).ThenInclude(r => r.Reservations).ThenInclude(res => res.Payments)
+            .Include(h => h.RoomTypes).ThenInclude(rt => rt.Rooms).ThenInclude(r => r.Reservations).ThenInclude(res => res.Payments)
             .Include(h => h.Feedbacks)
-            .OrderByDescending(h => h.Rooms.SelectMany(r => r.Reservations).Count())
+            .OrderByDescending(h => h.RoomTypes.SelectMany(rt => rt.Rooms).SelectMany(r => r.Reservations).Count())
             .Take(count)
             .Select(h => new AdminTopHotelDto
             {
                 HotelId = h.HotelId,
                 Name = h.Name,
                 CityName = h.City.Name,
-                ReservationCount = h.Rooms.SelectMany(r => r.Reservations).Count(),
-                Revenue = h.Rooms
+                ReservationCount = h.RoomTypes.SelectMany(rt => rt.Rooms).SelectMany(r => r.Reservations).Count(),
+                Revenue = h.RoomTypes
+                    .SelectMany(rt => rt.Rooms)
                     .SelectMany(r => r.Reservations)
                     .SelectMany(res => res.Payments)
                     .Where(p => p.Status == "Success")
@@ -541,17 +542,19 @@ public class AdminDashboardRepository : IAdminDashboardRepository
 
         return await _ctx.Cities
             .Include(c => c.Hotels)
-                .ThenInclude(h => h.Rooms)
-                    .ThenInclude(r => r.Reservations)
+                .ThenInclude(h => h.RoomTypes)
+                .ThenInclude(rt => rt.Rooms)
+                .ThenInclude(r => r.Reservations)
             .Select(c => new
             {
                 c.CityId,
                 c.Name,
                 HotelCount = c.Hotels.Count,
                 BookingCount = c.Hotels
-                    .SelectMany(h => h.Rooms)
-                    .SelectMany(r => r.Reservations)
-                    .Count()
+                .SelectMany(h => h.RoomTypes)
+                .SelectMany(rt => rt.Rooms)
+                .SelectMany(r => r.Reservations)
+                .Count()
             })
             .OrderByDescending(c => c.BookingCount)
             .Take(count)

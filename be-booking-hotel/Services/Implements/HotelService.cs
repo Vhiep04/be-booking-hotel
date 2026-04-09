@@ -35,12 +35,12 @@ namespace be_booking_hotel.Services.Implements
                 CityId = h.CityId,
                 CityName = h.City.Name,
                 Country = h.City.Country,
-                MinPrice = h.Rooms.Any() ? h.Rooms.Min(r => r.PricePerNight) : 0,
-                MaxPrice = h.Rooms.Any() ? h.Rooms.Max(r => r.PricePerNight) : 0,
+                MinPrice = h.RoomTypes.Any() ? h.RoomTypes.Min(r => r.PricePerNight) : 0,
+                MaxPrice = h.RoomTypes.Any() ? h.RoomTypes.Max(r => r.PricePerNight) : 0,
                 AverageRating = h.Feedbacks.Any() ? h.Feedbacks.Average(f => f.Rating) : null,
                 TotalReviews = h.Feedbacks.Count,
-                TotalRooms = h.Rooms.Count,
-                AvailableRooms = h.Rooms.Count, // TODO: Calculate based on reservations
+                TotalRooms = h.RoomTypes.Count,
+                AvailableRooms = h.RoomTypes.Count, // TODO: Calculate based on reservations
                 CreatedAt = h.CreatedAt
             }).ToList();
 
@@ -82,8 +82,8 @@ namespace be_booking_hotel.Services.Implements
                     Longitude = hotel.City.Longitude
                 },
 
-                MinPrice = hotel.Rooms.Any() ? hotel.Rooms.Min(r => r.PricePerNight) : 0,
-                MaxPrice = hotel.Rooms.Any() ? hotel.Rooms.Max(r => r.PricePerNight) : 0,
+                MinPrice = hotel.RoomTypes.Any() ? hotel.RoomTypes.Min(r => r.PricePerNight) : 0,
+                MaxPrice = hotel.RoomTypes.Any() ? hotel.RoomTypes.Max(r => r.PricePerNight) : 0,
 
                 AverageRating = hotel.Feedbacks.Any() ? hotel.Feedbacks.Average(f => f.Rating) : null,
                 TotalReviews = hotel.Feedbacks.Count,
@@ -97,10 +97,17 @@ namespace be_booking_hotel.Services.Implements
                     OneStar = ratingDist[1]
                 },
 
-                TotalRooms = hotel.Rooms.Count,
-                RoomTypes = hotel.Rooms.Select(r => r.RoomType).Distinct().ToList(),
+                TotalRooms = hotel.RoomTypes.Count,
+                RoomTypes = hotel.RoomTypes.Select(rt => new RoomTypeDto
+                {
+                    RoomTypeId = rt.RoomTypeId,
+                    TypeName = rt.TypeName,
+                    PricePerNight = rt.PricePerNight,
+                    Capacity = rt.Capacity,
+                    ImgUrl = rt.ImgUrl
+                }).ToList(),
 
-                Facilities = hotel.Rooms
+                Facilities = hotel.RoomTypes
                     .SelectMany(r => r.Facilities.Select(f => f.Name))
                     .Distinct()
                     .ToList(),
@@ -131,13 +138,20 @@ namespace be_booking_hotel.Services.Implements
             {
                 RoomId = r.RoomId,
                 HotelId = r.HotelId,
-                RoomType = r.RoomType,
-                PricePerNight = r.PricePerNight,
-                Capacity = r.Capacity,
-                ImgUrl = r.ImgUrl,
-                Facilities = r.Facilities.Select(f => f.Name).ToList(),
-                IsAvailable = true, // TODO: Check reservations
-                BookedDays = 0 // TODO: Calculate from reservations
+
+                // ✅ Fix: RoomType là navigation property, lấy TypeName
+                RoomType = r.RoomType?.TypeName ?? "",
+
+                // ✅ Fix: PricePerNight, Capacity, ImgUrl lấy từ RoomType
+                PricePerNight = r.RoomType?.PricePerNight ?? 0,
+                Capacity = r.RoomType?.Capacity ?? 0,
+                ImgUrl = r.RoomType?.ImgUrl,
+
+                // ✅ Fix: Facilities lấy từ RoomType
+                Facilities = r.RoomType?.Facilities?.Select(f => f.Name).ToList() ?? new(),
+
+                IsAvailable = true,
+                BookedDays = 0
             }).ToList();
 
             var roomList = new RoomListDto
@@ -174,13 +188,15 @@ namespace be_booking_hotel.Services.Implements
             {
                 RoomId = room.RoomId,
                 HotelId = room.HotelId,
-                RoomType = room.RoomType,
-                PricePerNight = room.PricePerNight,
-                Capacity = room.Capacity,
-                ImgUrl = room.ImgUrl,
-                Facilities = room.Facilities.Select(f => f.Name).ToList(),
-                IsAvailable = true,   // TODO: Check reservations
-                BookedDays = 0        // TODO: Calculate from reservations
+
+                RoomType = room.RoomType?.TypeName ?? "",
+                PricePerNight = room.RoomType?.PricePerNight ?? 0,
+                Capacity = room.RoomType?.Capacity ?? 0,
+                ImgUrl = room.RoomType?.ImgUrl,
+                Facilities = room.RoomType?.Facilities?.Select(f => f.Name).ToList() ?? new(),
+
+                IsAvailable = true,
+                BookedDays = 0
             };
         }
     }

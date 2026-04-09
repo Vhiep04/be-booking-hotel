@@ -27,15 +27,13 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
     public virtual DbSet<Room> Rooms { get; set; }
     public virtual DbSet<HotelImage> HotelImages { get; set; }
     public virtual DbSet<CityImage> CityImages { get; set; }
+    public virtual DbSet<RoomType> RoomTypes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // ⚠️ QUAN TRỌNG: Phải gọi base trước để Identity tạo các bảng
+        // Phải gọi base trước để Identity tạo các bảng
         base.OnModelCreating(modelBuilder);
 
-        // ====================================
-        // City Configuration
-        // ====================================
         modelBuilder.Entity<City>(entity =>
         {
             entity.HasKey(e => e.CityId).HasName("PK__Cities__F2D21B76D8EFF858");
@@ -67,18 +65,13 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_CityImages_Cities");
         });
-        // ====================================
-        // Facility Configuration
-        // ====================================
+
         modelBuilder.Entity<Facility>(entity =>
         {
             entity.HasKey(e => e.FacilityId).HasName("PK__Faciliti__5FB08A7401B4C70B");
             entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
         });
 
-        // ====================================
-        // Favourite Configuration
-        // ====================================
         modelBuilder.Entity<Favourite>(entity =>
         {
             entity.HasKey(e => e.FavouriteId).HasName("PK__Favourit__5944B59A44B0F984");
@@ -103,9 +96,6 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .HasConstraintName("FK_Favourites_AspNetUsers");
         });
 
-        // ====================================
-        // Feedback Configuration
-        // ====================================
         modelBuilder.Entity<Feedback>(entity =>
         {
             entity.HasKey(e => e.FeedbackId).HasName("PK__Feedback__6A4BEDD6048ECA40");
@@ -137,9 +127,6 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .HasConstraintName("FK_Feedbacks_AspNetUsers");
         });
 
-        // ====================================
-        // Hotel Configuration
-        // ====================================
         modelBuilder.Entity<Hotel>(entity =>
         {
             entity.HasKey(e => e.HotelId).HasName("PK__Hotels__46023BDFBE637F10");
@@ -202,9 +189,7 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.CityId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-        // ====================================
-        // Payment Configuration
-        // ====================================
+
         modelBuilder.Entity<Payment>(entity =>
         {
             entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A3881D1B46A");
@@ -226,9 +211,6 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .HasConstraintName("FK_Payments_Reservations");
         });
 
-        // ====================================
-        // Reservation Configuration
-        // ====================================
         modelBuilder.Entity<Reservation>(entity =>
         {
             entity.HasKey(e => e.ReservationId).HasName("PK__Reservat__B7EE5F244535920B");
@@ -257,42 +239,58 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .HasConstraintName("FK_Reservations_AspNetUsers");
         });
 
-        // ====================================
-        // Room Configuration
-        // ====================================
+        modelBuilder.Entity<RoomType>(entity =>
+        {
+            entity.HasKey(e => e.RoomTypeId);
+            entity.Property(e => e.TypeName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.PricePerNight).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.ImgUrl).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            // FK: RoomType -> Hotel
+            entity.HasOne(d => d.Hotel)
+                .WithMany(p => p.RoomTypes)
+                .HasForeignKey(d => d.HotelId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_RoomTypes_Hotels");
+
+            // Many-to-Many: RoomType <-> Facility
+            entity.HasMany(d => d.Facilities)
+                .WithMany(p => p.RoomTypes)
+                .UsingEntity<Dictionary<string, object>>(
+                    "RoomTypeFacility",
+                    r => r.HasOne<Facility>().WithMany()
+                        .HasForeignKey("FacilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("FK_RoomTypeFacilities_Facilities"),
+                    l => l.HasOne<RoomType>().WithMany()
+                        .HasForeignKey("RoomTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("FK_RoomTypeFacilities_RoomTypes"),
+                    j => j.ToTable("RoomTypeFacilities"));
+        });
+
         modelBuilder.Entity<Room>(entity =>
         {
             entity.HasKey(e => e.RoomId).HasName("PK__Rooms__328639399C07FB46");
+            entity.Property(e => e.RoomNumber).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValue("Available");
 
-            entity.Property(e => e.RoomType).HasMaxLength(100).IsRequired();
-            entity.Property(e => e.PricePerNight).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.ImgUrl).HasMaxLength(500);
-
-            // FK: Room -> Hotel
             entity.HasOne(d => d.Hotel)
                 .WithMany(p => p.Rooms)
                 .HasForeignKey(d => d.HotelId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_Rooms_Hotels");
 
-            // Many-to-Many: Room <-> Facility
-            entity.HasMany(d => d.Facilities)
+            entity.HasOne(d => d.RoomType)
                 .WithMany(p => p.Rooms)
-                .UsingEntity<Dictionary<string, object>>(
-                    "RoomFacility",
-                    r => r.HasOne<Facility>().WithMany()
-                        .HasForeignKey("FacilityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .HasConstraintName("FK_RoomFacilities_Facilities"),
-                    l => l.HasOne<Room>().WithMany()
-                        .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .HasConstraintName("FK_RoomFacilities_Rooms"),
-                    j =>
-                    {
-                        j.HasKey("RoomId", "FacilityId").HasName("PK__RoomFaci__677D319E84C7FF45");
-                        j.ToTable("RoomFacilities");
-                    });
+                .HasForeignKey(d => d.RoomTypeId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_Rooms_RoomTypes");
         });
 
         // ====================================

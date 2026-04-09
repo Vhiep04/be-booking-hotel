@@ -274,5 +274,34 @@ namespace be_booking_hotel.Controllers
                 });
             }
         }
+        /// <summary>
+        /// Lấy danh sách tất cả RoomType (id + name)
+        /// GET: api/cities/room-types
+        /// </summary>
+        [HttpGet("room-types")]
+        public async Task<IActionResult> GetAllRoomTypes()
+        {
+            try
+            {
+                var roomTypes = await _cityService.GetAllRoomTypesAsync();
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Found {roomTypes.Count} room types",
+                    data = roomTypes,
+                    totalCount = roomTypes.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting room types");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "An error occurred while retrieving room types",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

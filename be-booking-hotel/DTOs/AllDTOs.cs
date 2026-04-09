@@ -140,6 +140,9 @@ public class AdminRoomResponse
     public int RoomId { get; set; }
     public int HotelId { get; set; }
     public string HotelName { get; set; } = string.Empty;
+    public string RoomNumber { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int RoomTypeId { get; set; }
     public string RoomType { get; set; } = string.Empty;
     public decimal PricePerNight { get; set; }
     public int Capacity { get; set; }
@@ -150,11 +153,10 @@ public class AdminRoomResponse
 public class AdminRoomRequest
 {
     public int HotelId { get; set; }
-    public string RoomType { get; set; } = string.Empty;
-    public decimal PricePerNight { get; set; }
-    public int Capacity { get; set; }
-    public string? ImgUrl { get; set; }
-    public List<int> FacilityIds { get; set; } = new();
+    public int RoomTypeId { get; set; }    // thay RoomType string
+    public string RoomNumber { get; set; } = null!;
+    public string? Status { get; set; }
+    // Bỏ: PricePerNight, Capacity, ImgUrl, FacilityIds (quản lý ở RoomType)
 }
 
 // ===== FACILITY =====

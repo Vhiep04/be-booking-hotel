@@ -1,4 +1,4 @@
-using be_booking_hotel.Repositories.Admin.Interfaces;
+﻿using be_booking_hotel.Repositories.Admin.Interfaces;
 using be_booking_hotel.DTOs.Admin;
 using be_booking_hotel.Models;
 using be_booking_hotel.Repositories.Admin;
@@ -373,7 +373,8 @@ public class AdminHotelService : IAdminHotelService
         HotelId = h.HotelId, CityId = h.CityId, CityName = h.City?.Name ?? "",
         Name = h.Name, Location = h.Location, Description = h.Description,
         ImgUrl = h.ImgUrl, Latitude = h.Latitude, Longitude = h.Longitude,
-        CreatedAt = h.CreatedAt, RoomCount = h.Rooms?.Count ?? 0,
+        CreatedAt = h.CreatedAt,
+        RoomCount = h.RoomTypes?.Sum(rt => rt.Rooms?.Count ?? 0) ?? 0,
         AverageRating = h.Feedbacks?.Any() == true ? h.Feedbacks.Average(f => (double)f.Rating) : null,
         FeedbackCount = h.Feedbacks?.Count ?? 0,
         Images = h.HotelImages?.OrderBy(i => i.DisplayOrder).Select(i => new AdminImageResponse
@@ -426,13 +427,12 @@ public class AdminRoomService : IAdminRoomService
     {
         var room = new Room
         {
-            HotelId = request.HotelId, RoomType = request.RoomType,
-            PricePerNight = request.PricePerNight, Capacity = request.Capacity,
-            ImgUrl = request.ImgUrl
+            HotelId = request.HotelId,
+            RoomTypeId = request.RoomTypeId,
+            RoomNumber = request.RoomNumber,
+            Status = request.Status ?? "Available"
         };
         var created = await _repo.CreateAsync(room);
-        if (request.FacilityIds.Any())
-            await _repo.UpdateFacilitiesAsync(created.RoomId, request.FacilityIds);
         var full = await _repo.GetWithFacilitiesAsync(created.RoomId);
         return AdminApiResponse<AdminRoomResponse>.Ok(MapRoom(full!), "Room created.");
     }
@@ -441,11 +441,11 @@ public class AdminRoomService : IAdminRoomService
     {
         var room = await _repo.GetByIdAsync(id);
         if (room == null) return AdminApiResponse<AdminRoomResponse>.Fail("Room not found.");
-        room.HotelId = request.HotelId; room.RoomType = request.RoomType;
-        room.PricePerNight = request.PricePerNight; room.Capacity = request.Capacity;
-        room.ImgUrl = request.ImgUrl;
+        room.HotelId = request.HotelId;
+        room.RoomTypeId = request.RoomTypeId;
+        room.RoomNumber = request.RoomNumber;
+        room.Status = request.Status ?? room.Status;
         await _repo.UpdateAsync(room);
-        await _repo.UpdateFacilitiesAsync(id, request.FacilityIds);
         var full = await _repo.GetWithFacilitiesAsync(id);
         return AdminApiResponse<AdminRoomResponse>.Ok(MapRoom(full!), "Room updated.");
     }
@@ -461,12 +461,20 @@ public class AdminRoomService : IAdminRoomService
 
     private static AdminRoomResponse MapRoom(Room r) => new()
     {
-        RoomId = r.RoomId, HotelId = r.HotelId, HotelName = r.Hotel?.Name ?? "",
-        RoomType = r.RoomType, PricePerNight = r.PricePerNight,
-        Capacity = r.Capacity, ImgUrl = r.ImgUrl,
-        Facilities = r.Facilities?.Select(f => new AdminFacilityResponse
+        RoomId = r.RoomId,
+        HotelId = r.HotelId,
+        HotelName = r.Hotel?.Name ?? "",
+        RoomNumber = r.RoomNumber,
+        Status = r.Status,
+        RoomTypeId = r.RoomTypeId,
+        RoomType = r.RoomType?.TypeName ?? "",
+        PricePerNight = r.RoomType?.PricePerNight ?? 0,
+        Capacity = r.RoomType?.Capacity ?? 0,
+        ImgUrl = r.RoomType?.ImgUrl,
+        Facilities = r.RoomType?.Facilities?.Select(f => new AdminFacilityResponse
         {
-            FacilityId = f.FacilityId, Name = f.Name
+            FacilityId = f.FacilityId,
+            Name = f.Name
         }).ToList() ?? new()
     };
 }
@@ -584,7 +592,8 @@ public class AdminReservationService : IAdminReservationService
         ReservationId = r.ReservationId, UserId = r.UserId,
         UserEmail = user?.Email,
         UserName = user != null ? $"{user.FirstName} {user.LastName}".Trim() : null,
-        RoomId = r.RoomId, RoomType = r.Room?.RoomType ?? "",
+        RoomId = r.RoomId,
+        RoomType = r.Room?.RoomType?.TypeName ?? "",
         HotelName = r.Room?.Hotel?.Name ?? "", CityName = r.Room?.Hotel?.City?.Name ?? "",
         CheckInDate = r.CheckInDate.ToDateTime(TimeOnly.MinValue),
         CheckOutDate = r.CheckOutDate.ToDateTime(TimeOnly.MinValue),

@@ -11,6 +11,8 @@
         public List<int>? Facilities { get; set; }
         public string? SortBy { get; set; } // price_asc, price_desc, rating_desc, name_asc
         public decimal? MinPrice { get; set; }
+        public string? RoomTypeName { get; set; }
+
         public decimal? MaxPrice { get; set; }
     }
 

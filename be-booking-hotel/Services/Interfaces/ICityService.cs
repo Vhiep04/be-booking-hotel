@@ -8,8 +8,9 @@ namespace be_booking_hotel.Services.Interfaces
         Task<CityDto?> GetCityByIdAsync(int id);
         Task<List<CityDto>> SearchCitiesAsync(string searchTerm);
         Task<CityHotelsResultDto> GetCityHotelsWithFilterAsync(int cityId, HotelFilterDto filter);
-        Task<AllHotelsResultDto> GetAllHotelsWithFilterAsync(HotelFilterDto filter); // ← Method mới
+        Task<AllHotelsResultDto> GetAllHotelsWithFilterAsync(HotelFilterDto filter);
         Task<HotelInCityDto?> GetHotelInCityAsync(int cityId, int hotelId);
         Task<CityStatsDto?> GetCityStatsAsync(int cityId);
+        Task<List<RoomTypeDto>> GetAllRoomTypesAsync();
     }
 }

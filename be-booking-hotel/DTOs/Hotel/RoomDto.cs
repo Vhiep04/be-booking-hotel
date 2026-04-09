@@ -37,4 +37,12 @@
         public decimal MinPrice { get; set; }
         public decimal MaxPrice { get; set; }
     }
+    public class RoomTypeDto
+    {
+        public int RoomTypeId { get; set; }
+        public string TypeName { get; set; } = string.Empty;
+        public decimal PricePerNight { get; set; }
+        public int Capacity { get; set; }
+        public string? ImgUrl { get; set; }
+    }
 }

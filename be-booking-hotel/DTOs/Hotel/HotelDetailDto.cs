@@ -23,7 +23,7 @@
         public RatingDistribution RatingDistribution { get; set; } = new();
 
         public int TotalRooms { get; set; }
-        public List<string> RoomTypes { get; set; } = new();
+        public List<RoomTypeDto> RoomTypes { get; set; } = new();
         public List<string> Facilities { get; set; } = new();
 
         public List<FeedbackDto> RecentFeedbacks { get; set; } = new();

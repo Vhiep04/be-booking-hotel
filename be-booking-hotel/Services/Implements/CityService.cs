@@ -85,7 +85,7 @@ namespace be_booking_hotel.Services
             if (city == null) return null;
 
             var hotels = await _cityRepository.GetHotelsByCityIdAsync(cityId);
-            var allRooms = hotels.SelectMany(h => h.Rooms).ToList();
+            var allRooms = hotels.SelectMany(h => h.RoomTypes).ToList();
 
             if (!allRooms.Any())
             {
@@ -99,7 +99,7 @@ namespace be_booking_hotel.Services
             }
 
             var roomTypeDistribution = allRooms
-                .GroupBy(r => r.RoomType)
+                .GroupBy(r => r.TypeName)
                 .ToDictionary(g => g.Key, g => g.Count());
 
             var facilityCount = allRooms
@@ -143,7 +143,7 @@ namespace be_booking_hotel.Services
             // Filter by date availability
             if (filter.CheckIn.HasValue && filter.CheckOut.HasValue)
             {
-                query = query.Where(h => h.Rooms.Any(r =>
+                query = query.Where(h => h.RoomTypes.Any(r =>
                     !r.Reservations.Any(res =>
                         filter.CheckIn.Value < res.CheckOutDate &&
                         filter.CheckOut.Value > res.CheckInDate
@@ -151,27 +151,35 @@ namespace be_booking_hotel.Services
                 ));
             }
 
+
             // Filter by bed type
             if (!string.IsNullOrWhiteSpace(filter.BedType))
             {
-                query = query.Where(h => h.Rooms.Any(r => r.RoomType.Contains(filter.BedType)));
+                query = query.Where(h => h.RoomTypes.Any(r =>
+                    r.TypeName.Contains(filter.BedType, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.RoomTypeName))
+            {
+                query = query.Where(h => h.RoomTypes.Any(r =>
+                    r.TypeName.Contains(filter.RoomTypeName, StringComparison.OrdinalIgnoreCase)));
             }
 
             // Filter by price range
             if (filter.MinPrice.HasValue)
             {
-                query = query.Where(h => h.Rooms.Any(r => r.PricePerNight >= filter.MinPrice.Value));
+                query = query.Where(h => h.RoomTypes.Any(r => r.PricePerNight >= filter.MinPrice.Value));
             }
 
             if (filter.MaxPrice.HasValue)
             {
-                query = query.Where(h => h.Rooms.Any(r => r.PricePerNight <= filter.MaxPrice.Value));
+                query = query.Where(h => h.RoomTypes.Any(r => r.PricePerNight <= filter.MaxPrice.Value));
             }
 
             // Filter by facilities
             if (filter.Facilities != null && filter.Facilities.Any())
             {
-                query = query.Where(h => h.Rooms.Any(r =>
+                query = query.Where(h => h.RoomTypes.Any(r =>
                     filter.Facilities.All(fId =>
                         r.Facilities.Any(f => f.FacilityId == fId)
                     )
@@ -185,8 +193,8 @@ namespace be_booking_hotel.Services
             {
                 filteredHotels = filter.SortBy.ToLower() switch
                 {
-                    "price_asc" => filteredHotels.OrderBy(h => h.Rooms.Min(r => r.PricePerNight)).ToList(),
-                    "price_desc" => filteredHotels.OrderByDescending(h => h.Rooms.Min(r => r.PricePerNight)).ToList(),
+                    "price_asc" => filteredHotels.OrderBy(h => h.RoomTypes.Min(r => r.PricePerNight)).ToList(),
+                    "price_desc" => filteredHotels.OrderByDescending(h => h.RoomTypes.Min(r => r.PricePerNight)).ToList(),
                     "rating_desc" => filteredHotels.OrderByDescending(h =>
                         h.Feedbacks != null && h.Feedbacks.Any() ? h.Feedbacks.Average(f => f.Rating) : 0).ToList(),
                     "name_asc" => filteredHotels.OrderBy(h => h.Name).ToList(),
@@ -218,11 +226,15 @@ namespace be_booking_hotel.Services
             };
         }
 
+        // Lỗi: MapToHotelInCityDto dùng hotel.Rooms -> r.PricePerNight, r.RoomType, r.Facilities
+        // Room không còn các field đó
+
+        // Fix: dùng RoomTypes thay vì Rooms
         private HotelInCityDto MapToHotelInCityDto(Hotel hotel)
         {
-            var rooms = hotel.Rooms?.ToList() ?? new List<Room>();
+            var roomTypes = hotel.RoomTypes?.ToList() ?? new List<RoomType>();
 
-            var allFacilities = rooms
+            var allFacilities = roomTypes
                 .SelectMany(r => r.Facilities ?? new List<Facility>())
                 .GroupBy(f => f.FacilityId)
                 .Select(g => g.First())
@@ -237,12 +249,13 @@ namespace be_booking_hotel.Services
                 Name = hotel.Name,
                 Location = hotel.Location ?? string.Empty,
                 Description = hotel.Description,
-
                 Latitude = hotel.Latitude,
                 Longitude = hotel.Longitude,
 
-                MinPricePerNight = rooms.Any() ? rooms.Min(r => r.PricePerNight) : 0,
-                MaxPricePerNight = rooms.Any() ? rooms.Max(r => r.PricePerNight) : 0,
+                // Fix: lấy price từ RoomTypes
+                MinPricePerNight = roomTypes.Any() ? roomTypes.Min(r => r.PricePerNight) : 0,
+                MaxPricePerNight = roomTypes.Any() ? roomTypes.Max(r => r.PricePerNight) : 0,
+
                 PrimaryImageUrl = primaryImage?.ImageUrl ?? hotel.ImgUrl,
                 Images = hotel.HotelImages?.Select(img => new HotelImageDto
                 {
@@ -252,17 +265,29 @@ namespace be_booking_hotel.Services
                     DisplayOrder = img.DisplayOrder ?? 0,
                     Description = img.Description
                 }).ToList() ?? new List<HotelImageDto>(),
-                AvailableRoomTypes = rooms.Select(r => r.RoomType).Distinct().ToList(),
+
+                // Fix: TypeName thay vì RoomType
+                AvailableRoomTypes = roomTypes.Select(r => r.TypeName).Distinct().ToList(),
+
                 PopularFacilities = allFacilities.Select(f => new FacilityDto
                 {
                     FacilityId = f.FacilityId,
                     Name = f.Name
                 }).ToList(),
+
                 AverageRating = hotel.Feedbacks != null && hotel.Feedbacks.Any()
                     ? hotel.Feedbacks.Average(f => f.Rating)
                     : null,
                 TotalReviews = hotel.Feedbacks?.Count ?? 0
             };
+        }
+        public async Task<List<RoomTypeDto>> GetAllRoomTypesAsync()
+        {
+            var typeNames = await _cityRepository.GetDistinctRoomTypeNamesAsync();
+            return typeNames.Select(name => new RoomTypeDto
+            {
+                TypeName = name
+            }).ToList();
         }
     }
 }
