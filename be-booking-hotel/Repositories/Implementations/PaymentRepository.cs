@@ -18,7 +18,6 @@ namespace be_booking_hotel.Repositories.Implements
 
         public async Task<int> CreateReservationAsync(SendReceiptRequest request)
         {
-            // Tránh duplicate nếu user F5 lại trang success
             var existing = await _db.Reservations
                 .Where(r =>
                     r.UserId == request.UserId &&
@@ -41,7 +40,7 @@ namespace be_booking_hotel.Repositories.Implements
                 CheckInDate = request.CheckInDate,
                 CheckOutDate = request.CheckOutDate,
                 TotalPrice = request.Amount,
-                PaymentStatus = "Paid",
+                PaymentStatus = "Confirmed",
                 CreatedAt = DateTime.Now,
             };
 
@@ -54,7 +53,6 @@ namespace be_booking_hotel.Repositories.Implements
 
         public async Task CreatePaymentAsync(int reservationId, SendReceiptRequest request)
         {
-            // Tránh duplicate payment cho cùng reservation
             var exists = await _db.Payments
                 .AnyAsync(p =>
                     p.ReservationId == reservationId &&
@@ -82,6 +80,49 @@ namespace be_booking_hotel.Repositories.Implements
                 "Payment saved — ReservationId: {ResId}, Amount: {Amount}",
                 reservationId, request.Amount
             );
+        }
+        public async Task UpdateReservationStatusAsync(int reservationId, string status)
+        {
+            var reservation = await _db.Reservations.FindAsync(reservationId);
+            if (reservation != null)
+            {
+                reservation.PaymentStatus = status;
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task<int> CreateCashReservationAsync(CashReservationRequest request)
+        {
+            var existing = await _db.Reservations
+                .Where(r =>
+                    r.UserId == request.UserId &&
+                    r.RoomId == request.RoomId &&
+                    r.CheckInDate == request.CheckInDate &&
+                    r.CheckOutDate == request.CheckOutDate)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (existing != null)
+            {
+                _logger.LogInformation("Cash reservation already exists: {Id}", existing.ReservationId);
+                return existing.ReservationId;
+            }
+
+            var reservation = new Reservation
+            {
+                UserId = request.UserId,
+                RoomId = request.RoomId,
+                CheckInDate = request.CheckInDate,
+                CheckOutDate = request.CheckOutDate,
+                TotalPrice = request.Amount,
+                PaymentStatus = "Pending",
+                CreatedAt = DateTime.Now,
+            };
+
+            _db.Reservations.Add(reservation);
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Cash reservation created: {Id}", reservation.ReservationId);
+            return reservation.ReservationId;
         }
     }
 }

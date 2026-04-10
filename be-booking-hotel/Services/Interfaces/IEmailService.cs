@@ -8,5 +8,6 @@ namespace be_booking_hotel.Services.Interfaces
         Task SendWelcomeEmailAsync(string toEmail, string recipientName);
         Task SendPasswordResetOtpAsync(string toEmail, string recipientName, string otpCode);
         Task SendPaymentReceiptAsync(string toEmail, string recipientName, SendReceiptRequest receipt);
+        Task SendCashBookingConfirmationAsync(string toEmail, string recipientName, CashReservationRequest request);
     }
 }

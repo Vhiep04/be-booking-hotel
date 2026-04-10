@@ -168,27 +168,6 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_HotelImages_Hotels");
         });
-        // HotelImages configuration
-        modelBuilder.Entity<HotelImage>(entity =>
-        {
-            entity.HasKey(e => e.ImageId);
-
-            entity.HasOne(e => e.Hotel)
-                .WithMany(h => h.HotelImages)
-                .HasForeignKey(e => e.HotelId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // CityImages configuration
-        modelBuilder.Entity<CityImage>(entity =>
-        {
-            entity.HasKey(e => e.ImageId);
-
-            entity.HasOne(e => e.City)
-                .WithMany(c => c.CityImages)
-                .HasForeignKey(e => e.CityId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
 
         modelBuilder.Entity<Payment>(entity =>
         {

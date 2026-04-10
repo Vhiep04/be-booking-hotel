@@ -43,7 +43,7 @@ namespace be_booking_hotel.Controllers
 
         [HttpPost("send-receipt")]
         public async Task<IActionResult> SendReceipt([FromBody] SendReceiptRequest request)
-        {
+        {   
             if (string.IsNullOrWhiteSpace(request.Email))
                 return BadRequest(new { message = "Email is required" });
 
@@ -90,6 +90,47 @@ namespace be_booking_hotel.Controllers
                 message = isEmailSent
                     ? "Đặt phòng thành công, biên lai đã được gửi đến email của bạn"
                     : "Đặt phòng thành công nhưng không thể gửi email biên lai"
+            });
+        }
+        [HttpPost("cash-booking")]
+        public async Task<IActionResult> CashBooking([FromBody] CashReservationRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.UserId) || request.RoomId == 0)
+                return BadRequest(new { message = "UserId and RoomId are required" });
+
+            int reservationId;
+            try
+            {
+                reservationId = await _paymentRepository.CreateCashReservationAsync(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to create cash reservation: {Error}", ex.Message);
+                return StatusCode(500, new { message = "Failed to save reservation" });
+            }
+
+            var isEmailSent = false;
+            try
+            {
+                // Dùng method riêng thay vì SendPaymentReceiptAsync
+                await _emailService.SendCashBookingConfirmationAsync(
+                    request.Email, request.Name, request);
+                isEmailSent = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to send confirmation email to {Email}: {Error}",
+                    request.Email, ex.Message);
+            }
+
+            return Ok(new
+            {
+                success = true,
+                reservationId,
+                emailSent = isEmailSent,
+                message = isEmailSent
+                    ? "Đặt phòng thành công, vui lòng thanh toán tại quầy khi nhận phòng"
+                    : "Đặt phòng thành công nhưng không thể gửi email xác nhận"
             });
         }
     }

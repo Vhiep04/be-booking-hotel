@@ -581,10 +581,30 @@ public class AdminReservationService : IAdminReservationService
         var valid = new[] { "Pending", "Confirmed", "Cancelled", "Completed" };
         if (!valid.Contains(status))
             return AdminApiResponse<bool>.Fail($"Invalid status. Valid values: {string.Join(", ", valid)}");
+
+        // Lấy reservation hiện tại để check transition
+        var reservation = await _repo.GetByIdAsync(id);
+        if (reservation == null)
+            return AdminApiResponse<bool>.Fail("Reservation not found.");
+
+        var current = reservation.PaymentStatus ?? "Pending";
+
+        // Validate transition
+        var allowedTransitions = new Dictionary<string, string[]>
+        {
+            ["Pending"] = new[] { "Confirmed", "Cancelled" },
+            ["Confirmed"] = new[] { "Completed", "Cancelled" },
+            ["Completed"] = Array.Empty<string>(),   // terminal
+            ["Cancelled"] = Array.Empty<string>()    // terminal
+        };
+
+        if (!allowedTransitions.ContainsKey(current) || !allowedTransitions[current].Contains(status))
+            return AdminApiResponse<bool>.Fail($"Cannot transition from '{current}' to '{status}'.");
+
         var updated = await _repo.UpdateStatusAsync(id, status);
         return updated
             ? AdminApiResponse<bool>.Ok(true, "Status updated.")
-            : AdminApiResponse<bool>.Fail("Reservation not found.");
+            : AdminApiResponse<bool>.Fail("Update failed.");
     }
 
     private static AdminReservationResponse MapReservation(Reservation r, ApplicationUser? user) => new()

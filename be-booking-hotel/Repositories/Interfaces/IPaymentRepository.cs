@@ -6,5 +6,7 @@ namespace be_booking_hotel.Repositories.Interfaces
     {
         Task<int> CreateReservationAsync(SendReceiptRequest request);
         Task CreatePaymentAsync(int reservationId, SendReceiptRequest request);
+        Task<int> CreateCashReservationAsync(CashReservationRequest request);
+        Task UpdateReservationStatusAsync(int reservationId, string status);
     }
 }

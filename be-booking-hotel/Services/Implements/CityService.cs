@@ -143,10 +143,12 @@ namespace be_booking_hotel.Services
             // Filter by date availability
             if (filter.CheckIn.HasValue && filter.CheckOut.HasValue)
             {
-                query = query.Where(h => h.RoomTypes.Any(r =>
-                    !r.Reservations.Any(res =>
-                        filter.CheckIn.Value < res.CheckOutDate &&
-                        filter.CheckOut.Value > res.CheckInDate
+                query = query.Where(h => h.RoomTypes.Any(rt =>
+                    rt.Rooms.Any(room =>
+                        !room.Reservations.Any(res =>
+                            filter.CheckIn.Value < res.CheckOutDate &&
+                            filter.CheckOut.Value > res.CheckInDate
+                        )
                     )
                 ));
             }

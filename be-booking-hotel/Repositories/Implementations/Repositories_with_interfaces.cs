@@ -512,13 +512,30 @@ public class AdminDashboardRepository : IAdminDashboardRepository
             })
             .ToListAsync();
 
-    public async Task<List<AdminRecentBookingDto>> GetRecentBookingsAsync(int count) =>
-        await _ctx.Reservations
+    public async Task<List<AdminRecentBookingDto>> GetRecentBookingsAsync(int count)
+    {
+        var reservations = await _ctx.Reservations
             .Include(r => r.Room).ThenInclude(room => room.Hotel).ThenInclude(h => h.City)
             .Include(r => r.Room).ThenInclude(room => room.Hotel).ThenInclude(h => h.HotelImages)
             .OrderByDescending(r => r.CreatedAt)
             .Take(count)
-            .Select(r => new AdminRecentBookingDto
+            .ToListAsync();
+
+        var userIds = reservations.Select(r => r.UserId).Distinct().ToList();
+
+        var users = await _ctx.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName })
+            .ToDictionaryAsync(u => u.Id);
+
+        return reservations.Select(r =>
+        {
+            var user = users.GetValueOrDefault(r.UserId);
+            var guestName = user != null
+                ? $"{user.FirstName} {user.LastName}".Trim()
+                : "Unknown";
+
+            return new AdminRecentBookingDto
             {
                 ReservationId = r.ReservationId,
                 BookingCode = $"BK-{r.CreatedAt.Year}-{r.ReservationId:D3}",
@@ -528,13 +545,14 @@ public class AdminDashboardRepository : IAdminDashboardRepository
                     .Select(i => i.ImageUrl)
                     .FirstOrDefault() ?? r.Room.Hotel.ImgUrl ?? "",
                 CityName = r.Room.Hotel.City.Name,
-                GuestName = r.UserId,  // join với AspNetUsers ở service layer
+                GuestName = guestName,
                 CheckInDate = r.CheckInDate.ToDateTime(TimeOnly.MinValue),
                 CheckOutDate = r.CheckOutDate.ToDateTime(TimeOnly.MinValue),
                 Amount = r.TotalPrice,
                 Status = r.PaymentStatus ?? "Pending"
-            })
-            .ToListAsync();
+            };
+        }).ToList();
+    }
 
     public async Task<List<AdminPopularCityDto>> GetPopularCitiesAsync(int count)
     {
@@ -590,7 +608,7 @@ public class AdminDashboardRepository : IAdminDashboardRepository
             .Select(p => new AdminActivityDto
             {
                 Message = $"Payment received - ${p.Amount}",
-                Time = p.PaymentDate,  // DateTime non-nullable, dùng thẳng
+                Time = p.PaymentDate,
                 Type = "payment"
             })
             .ToListAsync();

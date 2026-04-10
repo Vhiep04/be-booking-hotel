@@ -15,5 +15,5 @@ public partial class RoomType
     public virtual ICollection<Room> Rooms { get; set; } = new List<Room>();
     public virtual ICollection<Facility> Facilities { get; set; } = new List<Facility>();
     // RoomType.cs - thêm navigation Reservations nếu chưa có
-    public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+    //public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 }

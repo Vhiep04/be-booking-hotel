@@ -1,6 +1,6 @@
 ﻿namespace be_booking_hotel.DTOs.Payment
 {
-    public class SendReceiptRequest
+    public class CashReservationRequest
     {
         public string Email { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
@@ -11,10 +11,7 @@
         public string HotelAddress { get; set; } = string.Empty;
         public DateOnly CheckInDate { get; set; }
         public DateOnly CheckOutDate { get; set; }
-        public string TransactionId { get; set; } = string.Empty;
-        public string OrderId { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public string PaymentMethod { get; set; } = string.Empty;
         public string OrderDescription { get; set; } = string.Empty;
     }
 }
