@@ -51,17 +51,18 @@ namespace be_booking_hotel.Repositories.Implements
             return reservation.ReservationId;
         }
 
-        public async Task CreatePaymentAsync(int reservationId, SendReceiptRequest request)
+        // ✅ Đổi return type void → Task<Payment>
+        public async Task<Payment> CreatePaymentAsync(int reservationId, SendReceiptRequest request)
         {
-            var exists = await _db.Payments
-                .AnyAsync(p =>
+            var existing = await _db.Payments
+                .FirstOrDefaultAsync(p =>
                     p.ReservationId == reservationId &&
                     p.Status == "Success");
 
-            if (exists)
+            if (existing != null)
             {
                 _logger.LogWarning("Payment already recorded for ReservationId: {Id}", reservationId);
-                return;
+                return existing;
             }
 
             var payment = new Payment
@@ -80,6 +81,15 @@ namespace be_booking_hotel.Repositories.Implements
                 "Payment saved — ReservationId: {ResId}, Amount: {Amount}",
                 reservationId, request.Amount
             );
+
+            return payment;
+        }
+
+        public async Task<Reservation?> GetReservationByIdAsync(int reservationId)
+        {
+            return await _db.Reservations
+                .Include(r => r.Room)
+                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
         }
         public async Task UpdateReservationStatusAsync(int reservationId, string status)
         {

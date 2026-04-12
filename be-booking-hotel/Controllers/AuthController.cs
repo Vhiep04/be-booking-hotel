@@ -2,6 +2,7 @@
 using be_booking_hotel.DTOs.Auth;
 using be_booking_hotel.Models;
 using be_booking_hotel.Repositories.Interfaces;
+using be_booking_hotel.Services.Implements;
 using be_booking_hotel.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,7 @@ namespace be_booking_hotel.Controllers
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly IOtpService _otpService;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
@@ -27,12 +29,14 @@ namespace be_booking_hotel.Controllers
             IConfiguration configuration,
             IEmailService emailService,
             IOtpService otpService,
+            INotificationService notificationService,
             ILogger<AuthController> logger)
         {
             _authRepository = authRepository;
             _configuration = configuration;
             _emailService = emailService;
             _otpService = otpService;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -131,6 +135,17 @@ namespace be_booking_hotel.Controllers
             // Gửi email OTP
             try
             {
+                await _notificationService.NotifyNewUserRegistered(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to send notification: {ex.Message}");
+                // Không return, vẫn tiếp tục
+            }
+
+            // Gửi email OTP
+            try
+            {
                 await _emailService.SendOtpEmailAsync(
                     user.Email,
                     $"{user.FirstName} {user.LastName}",
@@ -143,11 +158,10 @@ namespace be_booking_hotel.Controllers
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "Registration successful but failed to send verification email. Please use resend OTP.",
+                    message = "Registration successful but failed to send verification email.",
                     data = new { email = user.Email }
                 });
             }
-
             return Ok(new
             {
                 success = true,

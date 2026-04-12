@@ -28,6 +28,7 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
     public virtual DbSet<HotelImage> HotelImages { get; set; }
     public virtual DbSet<CityImage> CityImages { get; set; }
     public virtual DbSet<RoomType> RoomTypes { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -270,6 +271,21 @@ public partial class HotelBookingContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(d => d.RoomTypeId)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_Rooms_RoomTypes");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.NotificationId);
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Reservation)
+                  .WithMany()
+                  .HasForeignKey(e => e.ReservationId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         // ====================================

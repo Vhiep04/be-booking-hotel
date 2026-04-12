@@ -70,6 +70,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
+// Sửa JWT Bearer - thêm events để đọc token từ query string
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -81,6 +82,22 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
+    };
+
+    // ← THÊM ĐOẠN NÀY cho SignalR
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -100,6 +117,7 @@ builder.Services.AddScoped<IAdminHotelImageRepository, AdminHotelImageRepository
 builder.Services.AddScoped<IAdminCityImageRepository, AdminCityImageRepository>();
 builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -118,7 +136,8 @@ builder.Services.AddScoped<IAdminReservationService, AdminReservationService>();
 builder.Services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddSingleton<ICloudinaryService, CloudinaryService>();
-
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddSignalR();
 
 // 4. Thêm Authorization
 builder.Services.AddAuthorization();
@@ -203,18 +222,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Sửa thứ tự middleware - ĐÂY LÀ FIX CHÍNH
 app.UseHttpsRedirection();
-
-// QUAN TR?NG: Session ph?i tr??c Authentication
-
-app.UseCors("AllowAll");
+app.UseCors("AllowAll");      // ← CORS phải trước MapHub
 app.UseSession();
-
-// QUAN TRONG: Thu tu phai dúng
-app.UseAuthentication();  // Ph?i ??t tr??c UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notification");  // ← MapHub xuống đây
 
 app.Run();
 

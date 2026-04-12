@@ -1,4 +1,5 @@
 ﻿using be_booking_hotel.DTOs.Payment;
+using be_booking_hotel.Models;
 using be_booking_hotel.Models.Vnpay;
 using be_booking_hotel.Repositories.Interfaces;
 using be_booking_hotel.Services.Interfaces;
@@ -13,17 +14,20 @@ namespace be_booking_hotel.Controllers
         private readonly IVnPayService _vnPayService;
         private readonly IEmailService _emailService;
         private readonly IPaymentRepository _paymentRepository;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<PaymentController> _logger;
 
         public PaymentController(
             IVnPayService vnPayService,
             IEmailService emailService,
             IPaymentRepository paymentRepository,
+            INotificationService notificationService,
             ILogger<PaymentController> logger)
         {
             _vnPayService = vnPayService;
             _emailService = emailService;
             _paymentRepository = paymentRepository;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -43,11 +47,10 @@ namespace be_booking_hotel.Controllers
 
         [HttpPost("send-receipt")]
         public async Task<IActionResult> SendReceipt([FromBody] SendReceiptRequest request)
-        {   
+        {
             if (string.IsNullOrWhiteSpace(request.Email))
                 return BadRequest(new { message = "Email is required" });
 
-            // 1. Tạo Reservation
             int reservationId;
             try
             {
@@ -59,10 +62,10 @@ namespace be_booking_hotel.Controllers
                 return StatusCode(500, new { message = "Failed to save reservation" });
             }
 
-            // 2. Lưu Payment
+            Payment? payment = null;
             try
             {
-                await _paymentRepository.CreatePaymentAsync(reservationId, request);
+                payment = await _paymentRepository.CreatePaymentAsync(reservationId, request);
             }
             catch (Exception ex)
             {
@@ -70,7 +73,19 @@ namespace be_booking_hotel.Controllers
                 return StatusCode(500, new { message = "Failed to save payment" });
             }
 
-            // 3. Gửi email — không throw nếu fail
+            // ✅ Notify payment success (VNPay)
+            if (payment != null)
+            {
+                try
+                {
+                    await _notificationService.NotifyPaymentSuccess(payment);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("Failed to send payment notification: {Error}", ex.Message);
+                }
+            }
+
             var isEmailSent = false;
             try
             {
@@ -79,7 +94,7 @@ namespace be_booking_hotel.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Failed to send receipt email to {Email}: {Error}", request.Email, ex.Message);
+                _logger.LogError("Failed to send receipt email: {Error}", ex.Message);
             }
 
             return Ok(new
@@ -92,6 +107,7 @@ namespace be_booking_hotel.Controllers
                     : "Đặt phòng thành công nhưng không thể gửi email biên lai"
             });
         }
+
         [HttpPost("cash-booking")]
         public async Task<IActionResult> CashBooking([FromBody] CashReservationRequest request)
         {
@@ -109,18 +125,26 @@ namespace be_booking_hotel.Controllers
                 return StatusCode(500, new { message = "Failed to save reservation" });
             }
 
+            try
+            {
+                var reservation = await _paymentRepository.GetReservationByIdAsync(reservationId);
+                if (reservation != null)
+                    await _notificationService.NotifyNewBooking(reservation);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to send booking notification: {Error}", ex.Message);
+            }
+
             var isEmailSent = false;
             try
             {
-                // Dùng method riêng thay vì SendPaymentReceiptAsync
-                await _emailService.SendCashBookingConfirmationAsync(
-                    request.Email, request.Name, request);
+                await _emailService.SendCashBookingConfirmationAsync(request.Email, request.Name, request);
                 isEmailSent = true;
             }
             catch (Exception ex)
             {
-                _logger.LogError("Failed to send confirmation email to {Email}: {Error}",
-                    request.Email, ex.Message);
+                _logger.LogError("Failed to send confirmation email: {Error}", ex.Message);
             }
 
             return Ok(new

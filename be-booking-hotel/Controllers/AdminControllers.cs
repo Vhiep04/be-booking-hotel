@@ -1,5 +1,7 @@
-using be_booking_hotel.DTOs.Admin;
+﻿using be_booking_hotel.DTOs.Admin;
+using be_booking_hotel.Models;
 using be_booking_hotel.Services.Admin.Interfaces;
+using be_booking_hotel.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -342,7 +344,12 @@ public class AdminFacilitiesController : AdminBaseController
 public class AdminReservationsController : AdminBaseController
 {
     private readonly IAdminReservationService _service;
-    public AdminReservationsController(IAdminReservationService service) => _service = service;
+    private readonly INotificationService _notificationService;
+    public AdminReservationsController(IAdminReservationService service, INotificationService notificationService)
+    {
+        _service = service;
+        _notificationService = notificationService;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
@@ -366,7 +373,53 @@ public class AdminReservationsController : AdminBaseController
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] AdminUpdateReservationStatusRequest request)
     {
         var result = await _service.UpdateStatusAsync(id, request.PaymentStatus);
-        return result.Success ? Ok(result) : BadRequest(result);
+
+        if (result.Success)
+        {
+            // Lấy reservation để gửi notification
+            var reservation = await _service.GetReservationByIdAsync(id);
+
+            if (reservation != null)
+            {
+                // Map sang Reservation model để truyền vào NotificationService
+                var reservationModel = new Reservation
+                {
+                    ReservationId = reservation.ReservationId,
+                    UserId = reservation.UserId,
+                    RoomId = reservation.RoomId,
+                    CheckInDate = DateOnly.FromDateTime(reservation.CheckInDate),
+                    CheckOutDate = DateOnly.FromDateTime(reservation.CheckOutDate),
+                    TotalPrice = reservation.TotalPrice,
+                    PaymentStatus = request.PaymentStatus
+                };
+
+                try
+                {
+                    switch (request.PaymentStatus)
+                    {
+                        case "Confirmed":
+                            await _notificationService.NotifyBookingConfirmed(reservationModel);
+                            break;
+                        case "Cancelled":
+                            // false = admin huỷ
+                            await _notificationService.NotifyBookingCancelled(reservationModel, cancelledByUser: false);
+                            break;
+                        case "Completed":
+                            await _notificationService.NotifyBookingCompleted(reservationModel);
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Không return lỗi, chỉ log — notification thất bại không ảnh hưởng business
+                    Console.WriteLine($"Notification failed: {ex.Message}");
+                }
+            }
+
+            return Ok(result);
+        }
+
+        return BadRequest(result);
     }
 }
 
