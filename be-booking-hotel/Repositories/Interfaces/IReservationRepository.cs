@@ -2,7 +2,7 @@
 
 namespace be_booking_hotel.Repositories.Interfaces
 {
-    public interface IResevationRepository
+    public interface IReservationRepository
     {
         Task<List<Reservation>> GetByUserIdAsync(string userId, string? status, string? sort);
         Task<Reservation?> GetDetailByIdAsync(int reservationId, string userId);
