@@ -63,14 +63,17 @@ namespace be_booking_hotel.Repositories
                 .Include(h => h.HotelImages.OrderBy(img => img.DisplayOrder))
                 .Include(h => h.RoomTypes)
                 .ThenInclude(r => r.Facilities)
+                .Include(h => h.RoomTypes)
+                .ThenInclude(rt => rt.Rooms)
+                .ThenInclude(room => room.Reservations)
                 .Include(h => h.Feedbacks)
                 .Where(h => h.CityId == cityId)
                 .ToListAsync();
         }
 
-        
+
         /// Lấy một hotel cụ thể trong city
-        
+
         public async Task<Hotel?> GetHotelInCityAsync(int cityId, int hotelId)
         {
             return await _context.Hotels
@@ -135,24 +138,27 @@ namespace be_booking_hotel.Repositories
                 .ToListAsync();
         }
 
-        
+
         /// Lấy TẤT CẢ hotels từ mọi city
-        
+
         public async Task<List<Hotel>> GetAllHotelsAsync()
         {
             return await _context.Hotels
-                .Include(h => h.City) // Include City info
+                .Include(h => h.City)
                 .Include(h => h.HotelImages.OrderBy(img => img.DisplayOrder))
                 .Include(h => h.RoomTypes)
-                    .ThenInclude(r => r.Facilities)
+                .ThenInclude(r => r.Facilities)
+                .Include(h => h.RoomTypes)
+                .ThenInclude(rt => rt.Rooms)
+                .ThenInclude(room => room.Reservations)
                 .Include(h => h.Feedbacks)
                 .OrderBy(h => h.City.Name)
-                    .ThenBy(h => h.Name)
+                .ThenBy(h => h.Name)
                 .ToListAsync();
         }
-        
+
         /// Lấy tất cả RoomType (id + name)
-        
+
         public async Task<List<RoomType>> GetAllRoomTypesAsync()
         {
             return await _context.RoomTypes

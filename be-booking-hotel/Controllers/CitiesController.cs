@@ -117,7 +117,6 @@ namespace be_booking_hotel.Controllers
         {
             try
             {
-                // Nếu KHÔNG có cityId → Lấy TẤT CẢ hotels
                 if (!cityId.HasValue)
                 {
                     var allHotelsResult = await _cityService.GetAllHotelsWithFilterAsync(filter);
