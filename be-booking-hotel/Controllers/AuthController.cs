@@ -1,5 +1,6 @@
 ﻿using be_booking_hotel.DTOs;
 using be_booking_hotel.DTOs.Auth;
+using be_booking_hotel.Helpers;
 using be_booking_hotel.Models;
 using be_booking_hotel.Repositories.Interfaces;
 using be_booking_hotel.Services.Implements;
@@ -320,7 +321,195 @@ namespace be_booking_hotel.Controllers
             });
         }
 
-        /// Đăng nhập - Chỉ cho phép nếu đã verify email
+        /// Bước 1: Quên mật khẩu - Gửi OTP qua email
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid data",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+
+            var user = await _authRepository.FindByEmailAsync(model.Email);
+
+            // Luồng 2.1: Email không tồn tại → vẫn trả 200 OK để tránh lộ thông tin
+            if (user == null || !user.EmailConfirmed)
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = "If this email is registered, an OTP has been sent."
+                });
+            }
+
+            // Tái sử dụng OtpService với purpose = "ForgotPassword"
+            var otpCode = _otpService.GenerateOtp();
+            _otpService.SaveOtpToSession(user.Email!, user.Id, otpCode, "ForgotPassword");
+
+            // Luồng 2.2: Gửi email thất bại
+            try
+            {
+                await _emailService.SendPasswordResetOtpAsync(
+                    user.Email!,
+                    $"{user.FirstName} {user.LastName}",
+                    otpCode
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to send password reset OTP: {ex.Message}");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Failed to send OTP email. Please try again."
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = "If this email is registered, an OTP has been sent.",
+                data = new { expiresIn = "5 minutes" }
+            });
+        }
+
+        /// Bước 2: Xác thực OTP - Trả về resetToken tạm thời
+        [HttpPost("verify-reset-otp")]
+        public async Task<IActionResult> VerifyResetOtp([FromBody] VerifyResetOtpDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid data",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+
+            // Luồng 3.1 / 3.2: OTP sai hoặc hết hạn
+            var isValid = _otpService.ValidateOtp(model.Email, model.OtpCode, "ForgotPassword");
+            if (!isValid)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid or expired OTP code"
+                });
+            }
+
+            var user = await _authRepository.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = "User not found" });
+            }
+
+            // Tạo resetToken (GUID) và lưu vào session, có hiệu lực 10 phút
+            var resetToken = Guid.NewGuid().ToString();
+            var resetData = new OtpData
+            {
+                OtpCode = resetToken,       // Tái dụng OtpData để lưu token
+                Email = user.Email!,
+                UserId = user.Id,
+                Purpose = "PasswordReset",
+                ExpiresAt = DateTime.Now.AddMinutes(10),
+                ResendAttempts = 0,
+                LastResendAt = DateTime.Now
+            };
+
+            var session = HttpContext.Session;
+            var sessionKey = $"reset_token_{model.Email}";
+            session.SetString(sessionKey, System.Text.Json.JsonSerializer.Serialize(resetData));
+
+            return Ok(new
+            {
+                success = true,
+                message = "OTP verified. Use the reset token to set a new password.",
+                data = new
+                {
+                    email = user.Email,
+                    resetToken,
+                    expiresIn = "10 minutes"
+                }
+            });
+        }
+
+        /// Bước 3: Đặt lại mật khẩu
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid data",
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+
+            // Xác thực resetToken từ session
+            var sessionKey = $"reset_token_{model.Email}";
+            var tokenJson = HttpContext.Session.GetString(sessionKey);
+
+            if (string.IsNullOrEmpty(tokenJson))
+            {
+                return BadRequest(new { success = false, message = "Reset token not found or expired" });
+            }
+
+            OtpData? resetData;
+            try
+            {
+                resetData = System.Text.Json.JsonSerializer.Deserialize<OtpData>(tokenJson);
+            }
+            catch
+            {
+                return BadRequest(new { success = false, message = "Invalid reset token" });
+            }
+
+            if (resetData == null || resetData.OtpCode != model.ResetToken)
+            {
+                return BadRequest(new { success = false, message = "Invalid reset token" });
+            }
+
+            if (resetData.ExpiresAt < DateTime.Now)
+            {
+                HttpContext.Session.Remove(sessionKey);
+                return BadRequest(new { success = false, message = "Reset token has expired. Please start again." });
+            }
+
+            var user = await _authRepository.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = "User not found" });
+            }
+
+            // Đặt lại mật khẩu qua Identity
+            var token = await _authRepository.GeneratePasswordResetTokenAsync(user);
+            var result = await _authRepository.ResetPasswordAsync(user, token, model.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                // Luồng 4.1: Mật khẩu yếu (Identity validation)
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Password reset failed",
+                    errors = result.Errors.Select(e => e.Description)
+                });
+            }
+
+            // Xóa token khỏi session sau khi dùng
+            HttpContext.Session.Remove(sessionKey);
+
+            _logger.LogInformation($"Password reset successful for {model.Email}");
+
+            return Ok(new
+            {
+                success = true,
+                message = "Password has been reset successfully. You can now login with your new password."
+            });
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
@@ -388,8 +577,6 @@ namespace be_booking_hotel.Controllers
             });
         }
 
-        
-        /// Lấy thông tin user hiện tại
         [HttpGet("me")]
         [Authorize]
         public async Task<IActionResult> GetCurrentUser()

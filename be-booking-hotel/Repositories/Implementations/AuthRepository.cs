@@ -51,5 +51,12 @@ namespace be_booking_hotel.Repositories.Implementations
         {
             return await _userManager.GetRolesAsync(user);
         }
+
+        public async Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user)
+            => await _userManager.GeneratePasswordResetTokenAsync(user);
+
+        public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword)
+            => await _userManager.ResetPasswordAsync(user, token, newPassword);
+
     }
 }
