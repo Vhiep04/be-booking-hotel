@@ -115,11 +115,19 @@ namespace be_booking_hotel.Services.Implements
                 RecentFeedbacks = feedbacks.Select(f => new FeedbackDto
                 {
                     FeedbackId = f.FeedbackId,
-                    UserName = "Anonymous", // TODO: Get from User
+                    UserName = "Anonymous",
                     Rating = f.Rating,
                     Comment = f.Comment,
                     CreatedAt = f.CreatedAt
-                }).ToList()
+                }).ToList(),
+                Images = hotel.HotelImages
+                .OrderBy(i => i.DisplayOrder)
+                .Select(i => new HotelImageDto
+                {
+                    ImageUrl = i.ImageUrl,
+                    IsPrimary = i.IsPrimary ?? false,
+                    DisplayOrder = i.DisplayOrder ?? 0
+                }).ToList(),
             };
 
             return hotelDetail;

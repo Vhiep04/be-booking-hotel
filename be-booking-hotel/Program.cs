@@ -120,6 +120,7 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IFavouriteRepository, FavouriteRepository>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -141,6 +142,7 @@ builder.Services.AddSingleton<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IFavouriteService, FavouriteService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddSignalR();
 
 // 4. Thêm Authorization

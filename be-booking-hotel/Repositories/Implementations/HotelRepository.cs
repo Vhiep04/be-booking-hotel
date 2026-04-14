@@ -97,6 +97,7 @@ namespace be_booking_hotel.Repositories.Implementations
                 .Include(h => h.RoomTypes)
                     .ThenInclude(r => r.Facilities)
                 .Include(h => h.Feedbacks)
+                .Include(h => h.HotelImages)
                 .FirstOrDefaultAsync(h => h.HotelId == hotelId);
         }
 

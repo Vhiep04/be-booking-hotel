@@ -11,6 +11,7 @@
         public string RoomTypeName { get; set; } = string.Empty;
         public decimal PricePerNight { get; set; }
         public int Capacity { get; set; }
+        public int HotelId { get; set; }
         public string HotelName { get; set; } = string.Empty;
         public string HotelLocation { get; set; } = string.Empty;
         public string? HotelImage { get; set; }

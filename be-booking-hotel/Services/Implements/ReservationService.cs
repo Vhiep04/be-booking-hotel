@@ -78,7 +78,7 @@ namespace be_booking_hotel.Services
                 RoomTypeName = r.Room?.RoomType?.TypeName ?? "",
                 PricePerNight = r.Room?.RoomType?.PricePerNight ?? 0,
                 Capacity = r.Room?.RoomType?.Capacity ?? 0,
-
+                HotelId = r.Room?.HotelId ?? 0,
                 HotelName = r.Room?.Hotel?.Name ?? "",
                 HotelLocation = r.Room?.Hotel?.Location ?? "",
                 HotelImage = r.Room?.Hotel?.HotelImages?
