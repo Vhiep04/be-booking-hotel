@@ -20,9 +20,9 @@ namespace be_booking_hotel.Services.Implements
             _hub = hub;
         }
 
-        // ──────────────────────────────────────────
+        
         // HELPER: lưu DB + push realtime cùng lúc
-        // ──────────────────────────────────────────
+        
         private async Task SendToUser(string userId, Notification noti)
         {
             await _repo.AddAsync(noti);
@@ -62,9 +62,9 @@ namespace be_booking_hotel.Services.Implements
                       .SendAsync("ReceiveNotification", dto);
         }
 
-        // ──────────────────────────────────────────
+        
         // USER EVENTS
-        // ──────────────────────────────────────────
+        
         public async Task NotifyNewUserRegistered(ApplicationUser user)
         {
             await SendToAdmin(new Notification
@@ -76,9 +76,9 @@ namespace be_booking_hotel.Services.Implements
             });
         }
 
-        // ──────────────────────────────────────────
+        
         // BOOKING EVENTS
-        // ──────────────────────────────────────────
+        
         public async Task NotifyNewBooking(Reservation reservation)
         {
             // → Admin
@@ -169,9 +169,9 @@ namespace be_booking_hotel.Services.Implements
             });
         }
 
-        // ──────────────────────────────────────────
+        
         // PAYMENT EVENTS
-        // ──────────────────────────────────────────
+        
         public async Task NotifyPaymentSuccess(Payment payment)
         {
             // Load reservation nếu chưa có

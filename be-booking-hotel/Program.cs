@@ -121,6 +121,8 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<IFavouriteRepository, FavouriteRepository>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -144,6 +146,9 @@ builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IFavouriteService, FavouriteService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddSignalR();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<RoomContextService>();
+builder.Services.AddScoped<ChatBotService>();
 
 // 4. Thêm Authorization
 builder.Services.AddAuthorization();
@@ -203,6 +208,11 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 50 * 1024 * 1024;
 });
 
+builder.Services.AddHttpClient("Ollama", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Ollama:BaseUrl"] ?? "http://localhost:11434");
+    client.Timeout = TimeSpan.FromMinutes(5); // LLM có thể chậm
+});
 
 var app = builder.Build();
 
@@ -228,15 +238,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Sửa thứ tự middleware - ĐÂY LÀ FIX CHÍNH
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");      // ← CORS phải trước MapHub
+app.UseCors("AllowAll");
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<NotificationHub>("/hubs/notification");  // ← MapHub xuống đây
+app.MapHub<ChatHub>("/hubs/chatHub");
+app.MapHub<NotificationHub>("/hubs/notification");
 
 app.Run();
 
