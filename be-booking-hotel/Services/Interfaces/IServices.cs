@@ -37,6 +37,7 @@ public interface IAdminHotelService
     Task<AdminApiResponse<bool>> DeleteHotelImageAsync(int hotelId, int imageId);
     Task<AdminApiResponse<bool>> SetPrimaryHotelImageAsync(int hotelId, int imageId);
     Task<AdminApiResponse<bool>> ReorderHotelImagesAsync(int hotelId, List<int> imageIds);
+    Task<AdminApiResponse<List<AdminImageResponse>>> AddHotelImagesBulkAsync(int hotelId, AdminImageBulkRequest request);
 }
 
 public interface IAdminRoomService

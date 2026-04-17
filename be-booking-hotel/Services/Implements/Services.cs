@@ -395,6 +395,43 @@ public class AdminHotelService : IAdminHotelService
         DisplayOrder = i.DisplayOrder ?? 0,
         Description = i.Description
     };
+    public async Task<AdminApiResponse<List<AdminImageResponse>>> AddHotelImagesBulkAsync(
+    int hotelId, AdminImageBulkRequest request)
+    {
+        if (!await _repo.ExistsAsync(hotelId))
+            return AdminApiResponse<List<AdminImageResponse>>.Fail("Hotel not found.");
+
+        if (request.ImageUrls == null || request.ImageUrls.Count == 0)
+            return AdminApiResponse<List<AdminImageResponse>>.Fail("No image URLs provided.");
+
+        // Lấy DisplayOrder hiện tại cao nhất
+        var existingImages = await _imageRepo.GetByHotelAsync(hotelId);
+        var nextOrder = existingImages.Count > 0
+            ? (existingImages.Max(i => i.DisplayOrder ?? 0) + 1)
+            : 0;
+
+        var images = request.ImageUrls.Select((url, index) => new HotelImage
+        {
+            HotelId = hotelId,
+            ImageUrl = url,
+            IsPrimary = false,
+            DisplayOrder = nextOrder + index,
+            Description = null
+        }).ToList();
+
+        var created = await _imageRepo.CreateBulkAsync(images);
+
+        var result = created.Select(i => new AdminImageResponse
+        {
+            ImageId = i.ImageId,
+            ImageUrl = i.ImageUrl,
+            IsPrimary = i.IsPrimary ?? false,
+            DisplayOrder = i.DisplayOrder ?? 0,
+            Description = i.Description
+        }).ToList();
+
+        return AdminApiResponse<List<AdminImageResponse>>.Ok(result, $"{created.Count} images added.");
+    }
 }
 
 // ===== ROOM SERVICE =====

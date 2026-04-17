@@ -432,6 +432,12 @@ public class AdminHotelImageRepository : IAdminHotelImageRepository
         }
         await _ctx.SaveChangesAsync();
     }
+    public async Task<List<HotelImage>> CreateBulkAsync(List<HotelImage> images)
+    {
+        _ctx.HotelImages.AddRange(images);
+        await _ctx.SaveChangesAsync();
+        return images;
+    }
 }
 
 // ===== CITY IMAGE =====

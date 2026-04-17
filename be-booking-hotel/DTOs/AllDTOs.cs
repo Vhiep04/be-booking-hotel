@@ -320,3 +320,8 @@ public class UploadImagesResponse
     public List<UploadImageResponse> Uploaded { get; set; } = new();
     public int FailedCount { get; set; }
 }
+
+public class AdminImageBulkRequest
+{
+    public List<string> ImageUrls { get; set; } = new();
+}

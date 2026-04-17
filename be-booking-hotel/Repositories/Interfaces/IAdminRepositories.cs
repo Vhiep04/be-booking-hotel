@@ -88,6 +88,7 @@ public interface IAdminHotelImageRepository
     Task<bool> DeleteAsync(int id);
     Task SetPrimaryAsync(int hotelId, int imageId);
     Task ReorderAsync(int hotelId, List<int> imageIds);
+    Task<List<HotelImage>> CreateBulkAsync(List<HotelImage> images);
 }
 
 // ===== CITY IMAGE =====

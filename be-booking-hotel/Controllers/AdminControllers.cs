@@ -1,6 +1,7 @@
 ﻿using be_booking_hotel.DTOs.Admin;
 using be_booking_hotel.Models;
 using be_booking_hotel.Services.Admin.Interfaces;
+using be_booking_hotel.Services.Implements;
 using be_booking_hotel.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -231,6 +232,20 @@ public class AdminHotelsController : AdminBaseController
     [HttpPost("{id}/images/reorder")]
     public async Task<IActionResult> ReorderImages(int id, [FromBody] List<int> imageIds)
         => Ok(await _service.ReorderHotelImagesAsync(id, imageIds));
+
+    /// <summary>
+    /// Upload nhiều ảnh cho hotel (không set isPrimary, chỉ cần id + imageUrl)
+    /// </summary>
+    [HttpPost("{hotelId}/images/bulk")]
+    public async Task<IActionResult> AddHotelImagesBulk(int hotelId, [FromBody] AdminImageBulkRequest request)
+    {
+        var result = await _service.AddHotelImagesBulkAsync(hotelId, request);
+        return result.Success
+            ? Ok(result)
+            : result.Message == "Hotel not found."
+                ? NotFound(result)
+                : BadRequest(result);
+    }
 }
 
 // ================================================================
