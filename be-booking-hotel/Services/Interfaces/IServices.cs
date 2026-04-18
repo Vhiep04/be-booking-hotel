@@ -1,4 +1,4 @@
-using be_booking_hotel.DTOs.Admin;
+﻿using be_booking_hotel.DTOs.Admin;
 
 namespace be_booking_hotel.Services.Admin.Interfaces;
 
@@ -39,14 +39,40 @@ public interface IAdminHotelService
     Task<AdminApiResponse<bool>> ReorderHotelImagesAsync(int hotelId, List<int> imageIds);
     Task<AdminApiResponse<List<AdminImageResponse>>> AddHotelImagesBulkAsync(int hotelId, AdminImageBulkRequest request);
 }
+public interface IAdminRoomTypeService
+{
+    Task<AdminPagedResult<AdminRoomTypeResponse>> GetRoomTypesAsync(
+        int page, int pageSize, string? search, int? hotelId);
+
+    Task<IEnumerable<AdminRoomTypeResponse>> GetByHotelAsync(int hotelId);
+
+    Task<AdminRoomTypeResponse?> GetByIdAsync(int id);
+
+    Task<AdminApiResponse<AdminRoomTypeResponse>> CreateAsync(AdminRoomTypeRequest request);
+    Task<AdminApiResponse<AdminRoomTypeResponse>> UpdateAsync(int id, AdminRoomTypeRequest request);
+    Task<AdminApiResponse<bool>> DeleteAsync(int id);
+}
+
 
 public interface IAdminRoomService
 {
-    Task<AdminPagedResult<AdminRoomResponse>> GetRoomsAsync(int page, int pageSize, string? search, int? hotelId, string? roomType);
+    Task<AdminPagedResult<AdminRoomResponse>> GetRoomsAsync(
+        int page, int pageSize, string? search, int? hotelId, string? roomType);
+
     Task<AdminRoomResponse?> GetRoomByIdAsync(int id);
+
     Task<IEnumerable<AdminRoomResponse>> GetRoomsByHotelAsync(int hotelId);
+
     Task<AdminApiResponse<AdminRoomResponse>> CreateRoomAsync(AdminRoomRequest request);
+
+    /// <summary>Tạo nhiều Room cùng lúc với cùng RoomType</summary>
+    Task<AdminApiResponse<List<AdminRoomResponse>>> BulkCreateRoomsAsync(AdminBulkCreateRoomRequest request);
+
     Task<AdminApiResponse<AdminRoomResponse>> UpdateRoomAsync(int id, AdminRoomRequest request);
+
+    /// <summary>Chỉ đổi trạng thái (Available / Occupied / Maintenance)</summary>
+    Task<AdminApiResponse<AdminRoomResponse>> UpdateRoomStatusAsync(int id, AdminUpdateRoomStatusRequest request);
+
     Task<AdminApiResponse<bool>> DeleteRoomAsync(int id);
 }
 

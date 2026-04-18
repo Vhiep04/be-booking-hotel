@@ -16,5 +16,7 @@
         public int PageSize { get; set; } = 12;
 
         public string? SortBy { get; set; } // "price_asc", "price_desc", "rating", "name"
+        public DateOnly? CheckIn { get; set; }
+        public DateOnly? CheckOut { get; set; }
     }
 }

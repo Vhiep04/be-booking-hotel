@@ -150,15 +150,6 @@ public class AdminRoomResponse
     public List<AdminFacilityResponse> Facilities { get; set; } = new();
 }
 
-public class AdminRoomRequest
-{
-    public int HotelId { get; set; }
-    public int RoomTypeId { get; set; }    // thay RoomType string
-    public string RoomNumber { get; set; } = null!;
-    public string? Status { get; set; }
-    // Bỏ: PricePerNight, Capacity, ImgUrl, FacilityIds (quản lý ở RoomType)
-}
-
 // ===== FACILITY =====
 public class AdminFacilityResponse
 {
@@ -324,4 +315,74 @@ public class UploadImagesResponse
 public class AdminImageBulkRequest
 {
     public List<string> ImageUrls { get; set; } = new();
+}
+
+// ===== THÊM VÀO FILE AdminDTO.cs (namespace be_booking_hotel.DTOs.Admin) =====
+
+// ===== ROOM TYPE =====
+
+/// <summary>
+/// Response trả về khi đọc RoomType (bao gồm danh sách facilities và số phòng)
+/// </summary>
+public class AdminRoomTypeResponse
+{
+    public int RoomTypeId { get; set; }
+    public int HotelId { get; set; }
+    public string HotelName { get; set; } = string.Empty;
+    public string TypeName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public decimal PricePerNight { get; set; }
+    public int Capacity { get; set; }
+    public string? ImgUrl { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public int RoomCount { get; set; }                          // số Room instance thuộc type này
+    public List<AdminFacilityResponse> Facilities { get; set; } = new();
+}
+
+/// <summary>
+/// Request tạo / cập nhật RoomType.
+/// FacilityIds = danh sách facility muốn gán (thay thế toàn bộ khi update).
+/// </summary>
+public class AdminRoomTypeRequest
+{
+    public int HotelId { get; set; }
+    public string TypeName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public decimal PricePerNight { get; set; }
+    public int Capacity { get; set; }
+    public string? ImgUrl { get; set; }
+    public List<int> FacilityIds { get; set; } = new();         // gán facilities khi tạo/update
+}
+
+// ===== ROOM (cập nhật lại) =====
+
+/// <summary>
+/// Request tạo / cập nhật Room.
+/// Room chỉ giữ số phòng + trạng thái; mọi thứ khác (giá, ảnh, tiện nghi)
+/// đều kế thừa từ RoomType.
+/// </summary>
+public class AdminRoomRequest
+{
+    public int HotelId { get; set; }
+    public int RoomTypeId { get; set; }
+    public string RoomNumber { get; set; } = null!;
+    public string? Status { get; set; }                         // mặc định "Available"
+}
+
+/// <summary>
+/// Tạo nhiều Room cùng lúc cho một RoomType (ví dụ: 101-110).
+/// </summary>
+public class AdminBulkCreateRoomRequest
+{
+    public int HotelId { get; set; }
+    public int RoomTypeId { get; set; }
+    public List<string> RoomNumbers { get; set; } = new();      // ["101","102","103"]
+}
+
+/// <summary>
+/// Chỉ cập nhật trạng thái của Room (Available / Occupied / Maintenance).
+/// </summary>
+public class AdminUpdateRoomStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
 }

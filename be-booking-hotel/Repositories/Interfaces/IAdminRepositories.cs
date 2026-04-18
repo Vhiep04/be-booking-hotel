@@ -31,15 +31,54 @@ public interface IAdminHotelRepository : IAdminRepository<Hotel>
     Task<Hotel?> GetWithDetailsAsync(int id);
 }
 
-// ===== ROOM =====
-public interface IAdminRoomRepository : IAdminRepository<Room>
+public interface IAdminRoomTypeRepository
 {
-    Task<(List<Room> Items, int TotalCount)> GetPagedAsync(
+    Task<(List<RoomType> Items, int Total)> GetPagedAsync(
+        int page, int pageSize, string? search, int? hotelId);
+
+    Task<RoomType?> GetByIdAsync(int id);
+
+    /// <summary>Load ??y ??: Hotel, Rooms, Facilities</summary>
+    Task<RoomType?> GetWithDetailsAsync(int id);
+
+    Task<List<RoomType>> GetByHotelAsync(int hotelId);
+
+    Task<RoomType> CreateAsync(RoomType roomType);
+    Task UpdateAsync(RoomType roomType);
+    Task DeleteAsync(int id);
+    Task<bool> ExistsAsync(int id);
+
+    /// <summary>Ki?m tra TypeName ?ã t?n t?i trong hotel ch?a (tránh trùng)</summary>
+    Task<bool> ExistsByNameAsync(int hotelId, string typeName, int? excludeId = null);
+
+    /// <summary>??ng b? toàn b? facilities c?a m?t RoomType (replace)</summary>
+    Task SyncFacilitiesAsync(int roomTypeId, List<int> facilityIds);
+
+    /// <summary>Ki?m tra còn Room instance hay không tr??c khi xóa</summary>
+    Task<bool> HasRoomsAsync(int id);
+}
+
+// ===== ROOM =====
+public interface IAdminRoomRepository
+{
+    Task<(List<Room> Items, int Total)> GetPagedAsync(
         int page, int pageSize, string? search, int? hotelId, string? roomType);
-    Task<Room?> GetWithFacilitiesAsync(int id);
+
+    Task<Room?> GetByIdAsync(int id);
+    Task<Room?> GetWithFacilitiesAsync(int id);   // load Hotel + RoomType + Facilities
     Task<List<Room>> GetByHotelAsync(int hotelId);
-    Task UpdateFacilitiesAsync(int roomId, List<int> facilityIds);
+    Task<List<Room>> GetByRoomTypeAsync(int roomTypeId);
+
+    Task<Room> CreateAsync(Room room);
+    Task<List<Room>> CreateBulkAsync(List<Room> rooms);
+    Task UpdateAsync(Room room);
+    Task DeleteAsync(int id);
+    Task<bool> ExistsAsync(int id);
+
     Task<bool> HasActiveReservationsAsync(int roomId);
+
+    /// <summary>Ki?m tra RoomNumber ?ã t?n t?i trong hotel ch?a</summary>
+    Task<bool> RoomNumberExistsAsync(int hotelId, string roomNumber, int? excludeRoomId = null);
 }
 
 // ===== FACILITY =====

@@ -1,4 +1,5 @@
 ﻿using be_booking_hotel.DTOs.Hotel;
+using be_booking_hotel.Models;
 using be_booking_hotel.Repositories.Interfaces;
 using be_booking_hotel.Services.Interfaces;
 
@@ -133,55 +134,6 @@ namespace be_booking_hotel.Services.Implements
             return hotelDetail;
         }
 
-        public async Task<RoomListDto?> GetHotelRoomsAsync(int hotelId)
-        {
-            var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
-            if (!hotelExists)
-                return null;
-
-            var hotel = await _hotelRepository.GetHotelByIdAsync(hotelId);
-            var rooms = await _hotelRepository.GetHotelRoomsAsync(hotelId);
-
-            var roomDtos = rooms.Select(r => new RoomDto
-            {
-                RoomId = r.RoomId,
-                HotelId = r.HotelId,
-
-                // ✅ Fix: RoomType là navigation property, lấy TypeName
-                RoomType = r.RoomType?.TypeName ?? "",
-
-                // ✅ Fix: PricePerNight, Capacity, ImgUrl lấy từ RoomType
-                PricePerNight = r.RoomType?.PricePerNight ?? 0,
-                Capacity = r.RoomType?.Capacity ?? 0,
-                ImgUrl = r.RoomType?.ImgUrl,
-
-                // ✅ Fix: Facilities lấy từ RoomType
-                Facilities = r.RoomType?.Facilities?.Select(f => f.Name).ToList() ?? new(),
-
-                IsAvailable = true,
-                BookedDays = 0
-            }).ToList();
-
-            var roomList = new RoomListDto
-            {
-                HotelId = hotelId,
-                HotelName = hotel!.Name,
-
-                HotelLocation = hotel.Location,
-                HotelDescription = hotel.Description,
-                HotelLatitude = hotel.Latitude,
-                HotelLongitude = hotel.Longitude,
-
-                Rooms = roomDtos,
-                TotalRooms = roomDtos.Count,
-                AvailableRooms = roomDtos.Count(r => r.IsAvailable),
-                MinPrice = roomDtos.Any() ? roomDtos.Min(r => r.PricePerNight) : 0,
-                MaxPrice = roomDtos.Any() ? roomDtos.Max(r => r.PricePerNight) : 0
-            };
-
-            return roomList;
-        }
-
         public async Task<RoomDto?> GetRoomByIdAsync(int hotelId, int roomId)
         {
             var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
@@ -206,6 +158,101 @@ namespace be_booking_hotel.Services.Implements
                 IsAvailable = true,
                 BookedDays = 0
             };
+        }
+
+        public async Task<RoomListDto?> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null)
+        {
+            var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
+            if (!hotelExists)
+                return null;
+
+            var hotel = await _hotelRepository.GetHotelByIdAsync(hotelId);
+            var rooms = await _hotelRepository.GetHotelRoomsAsync(hotelId);
+
+            var roomDtos = rooms.Select(r =>
+            {
+                // ✅ Check availability theo Status + Reservation overlap
+                bool isAvailable = IsRoomAvailable(r, checkIn, checkOut);
+
+                return new RoomDto
+                {
+                    RoomId = r.RoomId,
+                    HotelId = r.HotelId,
+                    RoomType = r.RoomType?.TypeName ?? "",
+                    PricePerNight = r.RoomType?.PricePerNight ?? 0,
+                    Capacity = r.RoomType?.Capacity ?? 0,
+                    ImgUrl = r.RoomType?.ImgUrl,
+                    Facilities = r.RoomType?.Facilities?.Select(f => f.Name).ToList() ?? new(),
+                    IsAvailable = isAvailable,
+                    BookedDays = r.Reservations?.Count(res =>
+                        res.PaymentStatus != "Cancelled") ?? 0
+                };
+            }).ToList();
+
+            var roomList = new RoomListDto
+            {
+                HotelId = hotelId,
+                HotelName = hotel!.Name,
+                HotelLocation = hotel.Location,
+                HotelDescription = hotel.Description,
+                HotelLatitude = hotel.Latitude,
+                HotelLongitude = hotel.Longitude,
+                Rooms = roomDtos,
+                TotalRooms = roomDtos.Count(),
+                AvailableRooms = roomDtos.Count(r => r.IsAvailable), // ✅ Tính đúng
+                MinPrice = roomDtos.Any() ? roomDtos.Min(r => r.PricePerNight) : 0,
+                MaxPrice = roomDtos.Any() ? roomDtos.Max(r => r.PricePerNight) : 0
+            };
+
+            return roomList;
+        }
+
+        public async Task<RoomDto?> GetRoomByIdAsync(int hotelId, int roomId, DateOnly? checkIn = null, DateOnly? checkOut = null)
+        {
+            var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
+            if (!hotelExists)
+                return null;
+
+            var room = await _hotelRepository.GetRoomByIdAsync(hotelId, roomId);
+            if (room == null)
+                return null;
+
+            return new RoomDto
+            {
+                RoomId = room.RoomId,
+                HotelId = room.HotelId,
+                RoomType = room.RoomType?.TypeName ?? "",
+                PricePerNight = room.RoomType?.PricePerNight ?? 0,
+                Capacity = room.RoomType?.Capacity ?? 0,
+                ImgUrl = room.RoomType?.ImgUrl,
+                Facilities = room.RoomType?.Facilities?.Select(f => f.Name).ToList() ?? new(),
+                IsAvailable = IsRoomAvailable(room, checkIn, checkOut),
+                BookedDays = room.Reservations?.Count(res =>
+                    res.PaymentStatus != "Cancelled") ?? 0
+            };
+        }
+
+        // ✅ Helper: tính availability
+        private static bool IsRoomAvailable(Room room, DateOnly? checkIn, DateOnly? checkOut)
+        {
+            // Nếu phòng đang bảo trì → không available bất kể ngày
+            if (room.Status == "Maintenance")
+                return false;
+
+            // Nếu có truyền ngày → check overlap reservation (bỏ qua Status)
+            if (checkIn.HasValue && checkOut.HasValue)
+            {
+                bool hasConflict = room.Reservations?.Any(res =>
+                    res.PaymentStatus != "Cancelled" &&
+                    checkIn.Value < res.CheckOutDate &&
+                    checkOut.Value > res.CheckInDate
+                ) ?? false;
+
+                return !hasConflict;
+            }
+
+            // Không truyền ngày → dùng Status thuần
+            return room.Status == "Available";
         }
     }
 }

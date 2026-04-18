@@ -434,11 +434,137 @@ public class AdminHotelService : IAdminHotelService
     }
 }
 
+// ===== ROOMTYPE SERVICE =====
+public class AdminRoomTypeService : IAdminRoomTypeService
+{
+    private readonly IAdminRoomTypeRepository _repo;
+
+    public AdminRoomTypeService(IAdminRoomTypeRepository repo) => _repo = repo;
+
+    public async Task<AdminPagedResult<AdminRoomTypeResponse>> GetRoomTypesAsync(
+        int page, int pageSize, string? search, int? hotelId)
+    {
+        var (items, total) = await _repo.GetPagedAsync(page, pageSize, search, hotelId);
+        return new AdminPagedResult<AdminRoomTypeResponse>
+        {
+            Items = items.Select(Map).ToList(),
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task<IEnumerable<AdminRoomTypeResponse>> GetByHotelAsync(int hotelId) =>
+        (await _repo.GetByHotelAsync(hotelId)).Select(Map);
+
+    public async Task<AdminRoomTypeResponse?> GetByIdAsync(int id)
+    {
+        var rt = await _repo.GetWithDetailsAsync(id);
+        return rt == null ? null : Map(rt);
+    }
+
+    public async Task<AdminApiResponse<AdminRoomTypeResponse>> CreateAsync(AdminRoomTypeRequest request)
+    {
+        // Kiểm tra trùng tên trong cùng hotel
+        if (await _repo.ExistsByNameAsync(request.HotelId, request.TypeName))
+            return AdminApiResponse<AdminRoomTypeResponse>.Fail(
+                $"RoomType '{request.TypeName}' already exists in this hotel.");
+
+        var roomType = new RoomType
+        {
+            HotelId = request.HotelId,
+            TypeName = request.TypeName,
+            Description = request.Description,
+            PricePerNight = request.PricePerNight,
+            Capacity = request.Capacity,
+            ImgUrl = request.ImgUrl,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var created = await _repo.CreateAsync(roomType);
+
+        // Gán facilities nếu có
+        if (request.FacilityIds.Any())
+            await _repo.SyncFacilitiesAsync(created.RoomTypeId, request.FacilityIds);
+
+        var full = await _repo.GetWithDetailsAsync(created.RoomTypeId);
+        return AdminApiResponse<AdminRoomTypeResponse>.Ok(Map(full!), "RoomType created.");
+    }
+
+    public async Task<AdminApiResponse<AdminRoomTypeResponse>> UpdateAsync(int id, AdminRoomTypeRequest request)
+    {
+        var rt = await _repo.GetByIdAsync(id);
+        if (rt == null)
+            return AdminApiResponse<AdminRoomTypeResponse>.Fail("RoomType not found.");
+
+        // Kiểm tra trùng tên (bỏ qua chính nó)
+        if (await _repo.ExistsByNameAsync(request.HotelId, request.TypeName, excludeId: id))
+            return AdminApiResponse<AdminRoomTypeResponse>.Fail(
+                $"RoomType '{request.TypeName}' already exists in this hotel.");
+
+        rt.HotelId = request.HotelId;
+        rt.TypeName = request.TypeName;
+        rt.Description = request.Description;
+        rt.PricePerNight = request.PricePerNight;
+        rt.Capacity = request.Capacity;
+        rt.ImgUrl = request.ImgUrl;
+
+        await _repo.UpdateAsync(rt);
+
+        // Đồng bộ lại facilities (replace toàn bộ)
+        await _repo.SyncFacilitiesAsync(id, request.FacilityIds);
+
+        var full = await _repo.GetWithDetailsAsync(id);
+        return AdminApiResponse<AdminRoomTypeResponse>.Ok(Map(full!), "RoomType updated.");
+    }
+
+    public async Task<AdminApiResponse<bool>> DeleteAsync(int id)
+    {
+        if (!await _repo.ExistsAsync(id))
+            return AdminApiResponse<bool>.Fail("RoomType not found.");
+
+        // Không cho xóa nếu còn room instance
+        if (await _repo.HasRoomsAsync(id))
+            return AdminApiResponse<bool>.Fail(
+                "Cannot delete: RoomType still has room instances. Delete all rooms first.");
+
+        await _repo.DeleteAsync(id);
+        return AdminApiResponse<bool>.Ok(true, "RoomType deleted.");
+    }
+
+    private static AdminRoomTypeResponse Map(RoomType rt) => new()
+    {
+        RoomTypeId = rt.RoomTypeId,
+        HotelId = rt.HotelId,
+        HotelName = rt.Hotel?.Name ?? "",
+        TypeName = rt.TypeName,
+        Description = rt.Description,
+        PricePerNight = rt.PricePerNight,
+        Capacity = rt.Capacity,
+        ImgUrl = rt.ImgUrl,
+        CreatedAt = rt.CreatedAt,
+        RoomCount = rt.Rooms?.Count ?? 0,
+        Facilities = rt.Facilities?.Select(f => new AdminFacilityResponse
+        {
+            FacilityId = f.FacilityId,
+            Name = f.Name
+        }).ToList() ?? new()
+    };
+}
+
 // ===== ROOM SERVICE =====
 public class AdminRoomService : IAdminRoomService
 {
     private readonly IAdminRoomRepository _repo;
-    public AdminRoomService(IAdminRoomRepository repo) => _repo = repo;
+    private readonly IAdminRoomTypeRepository _roomTypeRepo;
+
+    private static readonly string[] ValidStatuses = { "Available", "Occupied", "Maintenance" };
+
+    public AdminRoomService(IAdminRoomRepository repo, IAdminRoomTypeRepository roomTypeRepo)
+    {
+        _repo = repo;
+        _roomTypeRepo = roomTypeRepo;
+    }
 
     public async Task<AdminPagedResult<AdminRoomResponse>> GetRoomsAsync(
         int page, int pageSize, string? search, int? hotelId, string? roomType)
@@ -447,7 +573,9 @@ public class AdminRoomService : IAdminRoomService
         return new AdminPagedResult<AdminRoomResponse>
         {
             Items = items.Select(MapRoom).ToList(),
-            TotalCount = total, Page = page, PageSize = pageSize
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
         };
     }
 
@@ -462,36 +590,157 @@ public class AdminRoomService : IAdminRoomService
 
     public async Task<AdminApiResponse<AdminRoomResponse>> CreateRoomAsync(AdminRoomRequest request)
     {
+        // Validate RoomType tồn tại và thuộc đúng hotel
+        var roomType = await _roomTypeRepo.GetByIdAsync(request.RoomTypeId);
+        if (roomType == null)
+            return AdminApiResponse<AdminRoomResponse>.Fail("RoomType not found.");
+        if (roomType.HotelId != request.HotelId)
+            return AdminApiResponse<AdminRoomResponse>.Fail("RoomType does not belong to the specified hotel.");
+
+        // Kiểm tra trùng RoomNumber trong hotel
+        if (await _repo.RoomNumberExistsAsync(request.HotelId, request.RoomNumber))
+            return AdminApiResponse<AdminRoomResponse>.Fail(
+                $"Room number '{request.RoomNumber}' already exists in this hotel.");
+
+        // Validate status
+        var status = request.Status ?? "Available";
+        if (!ValidStatuses.Contains(status))
+            return AdminApiResponse<AdminRoomResponse>.Fail(
+                $"Invalid status. Valid values: {string.Join(", ", ValidStatuses)}");
+
         var room = new Room
         {
             HotelId = request.HotelId,
             RoomTypeId = request.RoomTypeId,
             RoomNumber = request.RoomNumber,
-            Status = request.Status ?? "Available"
+            Status = status
         };
+
         var created = await _repo.CreateAsync(room);
         var full = await _repo.GetWithFacilitiesAsync(created.RoomId);
         return AdminApiResponse<AdminRoomResponse>.Ok(MapRoom(full!), "Room created.");
     }
 
+    public async Task<AdminApiResponse<List<AdminRoomResponse>>> BulkCreateRoomsAsync(
+        AdminBulkCreateRoomRequest request)
+    {
+        if (request.RoomNumbers == null || !request.RoomNumbers.Any())
+            return AdminApiResponse<List<AdminRoomResponse>>.Fail("No room numbers provided.");
+
+        // Validate RoomType
+        var roomType = await _roomTypeRepo.GetByIdAsync(request.RoomTypeId);
+        if (roomType == null)
+            return AdminApiResponse<List<AdminRoomResponse>>.Fail("RoomType not found.");
+        if (roomType.HotelId != request.HotelId)
+            return AdminApiResponse<List<AdminRoomResponse>>.Fail(
+                "RoomType does not belong to the specified hotel.");
+
+        // Kiểm tra trùng lặp trong danh sách gửi lên
+        var duplicatesInRequest = request.RoomNumbers
+            .GroupBy(n => n.ToLower())
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (duplicatesInRequest.Any())
+            return AdminApiResponse<List<AdminRoomResponse>>.Fail(
+                $"Duplicate room numbers in request: {string.Join(", ", duplicatesInRequest)}");
+
+        // Kiểm tra trùng với DB
+        var conflicts = new List<string>();
+        foreach (var number in request.RoomNumbers)
+            if (await _repo.RoomNumberExistsAsync(request.HotelId, number))
+                conflicts.Add(number);
+
+        if (conflicts.Any())
+            return AdminApiResponse<List<AdminRoomResponse>>.Fail(
+                $"Room numbers already exist in hotel: {string.Join(", ", conflicts)}");
+
+        var rooms = request.RoomNumbers.Select(number => new Room
+        {
+            HotelId = request.HotelId,
+            RoomTypeId = request.RoomTypeId,
+            RoomNumber = number,
+            Status = "Available"
+        }).ToList();
+
+        var created = await _repo.CreateBulkAsync(rooms);
+
+        // Load đầy đủ từng phòng
+        var results = new List<AdminRoomResponse>();
+        foreach (var r in created)
+        {
+            var full = await _repo.GetWithFacilitiesAsync(r.RoomId);
+            if (full != null) results.Add(MapRoom(full));
+        }
+
+        return AdminApiResponse<List<AdminRoomResponse>>.Ok(results,
+            $"{results.Count} rooms created successfully.");
+    }
+
     public async Task<AdminApiResponse<AdminRoomResponse>> UpdateRoomAsync(int id, AdminRoomRequest request)
     {
         var room = await _repo.GetByIdAsync(id);
-        if (room == null) return AdminApiResponse<AdminRoomResponse>.Fail("Room not found.");
+        if (room == null)
+            return AdminApiResponse<AdminRoomResponse>.Fail("Room not found.");
+
+        // Validate RoomType
+        var roomType = await _roomTypeRepo.GetByIdAsync(request.RoomTypeId);
+        if (roomType == null)
+            return AdminApiResponse<AdminRoomResponse>.Fail("RoomType not found.");
+        if (roomType.HotelId != request.HotelId)
+            return AdminApiResponse<AdminRoomResponse>.Fail(
+                "RoomType does not belong to the specified hotel.");
+
+        // Kiểm tra trùng RoomNumber (bỏ qua chính phòng đang update)
+        if (await _repo.RoomNumberExistsAsync(request.HotelId, request.RoomNumber, excludeRoomId: id))
+            return AdminApiResponse<AdminRoomResponse>.Fail(
+                $"Room number '{request.RoomNumber}' already exists in this hotel.");
+
+        // Validate status
+        var status = request.Status ?? room.Status;
+        if (!ValidStatuses.Contains(status))
+            return AdminApiResponse<AdminRoomResponse>.Fail(
+                $"Invalid status. Valid values: {string.Join(", ", ValidStatuses)}");
+
         room.HotelId = request.HotelId;
         room.RoomTypeId = request.RoomTypeId;
         room.RoomNumber = request.RoomNumber;
-        room.Status = request.Status ?? room.Status;
+        room.Status = status;
+
         await _repo.UpdateAsync(room);
         var full = await _repo.GetWithFacilitiesAsync(id);
         return AdminApiResponse<AdminRoomResponse>.Ok(MapRoom(full!), "Room updated.");
     }
 
+    public async Task<AdminApiResponse<AdminRoomResponse>> UpdateRoomStatusAsync(
+        int id, AdminUpdateRoomStatusRequest request)
+    {
+        var room = await _repo.GetByIdAsync(id);
+        if (room == null)
+            return AdminApiResponse<AdminRoomResponse>.Fail("Room not found.");
+
+        // Không cho thay đổi thủ công sang "Occupied" nếu đang có đặt phòng active
+        // (trạng thái Occupied thường được hệ thống set tự động khi check-in)
+        if (!ValidStatuses.Contains(request.Status))
+            return AdminApiResponse<AdminRoomResponse>.Fail(
+                $"Invalid status. Valid values: {string.Join(", ", ValidStatuses)}");
+
+        room.Status = request.Status;
+        await _repo.UpdateAsync(room);
+
+        var full = await _repo.GetWithFacilitiesAsync(id);
+        return AdminApiResponse<AdminRoomResponse>.Ok(MapRoom(full!), "Room status updated.");
+    }
+
     public async Task<AdminApiResponse<bool>> DeleteRoomAsync(int id)
     {
+        if (!await _repo.ExistsAsync(id))
+            return AdminApiResponse<bool>.Fail("Room not found.");
+
         if (await _repo.HasActiveReservationsAsync(id))
-            return AdminApiResponse<bool>.Fail("Cannot delete: room has active reservations.");
-        if (!await _repo.ExistsAsync(id)) return AdminApiResponse<bool>.Fail("Room not found.");
+            return AdminApiResponse<bool>.Fail(
+                "Cannot delete: room has active reservations (Pending/Confirmed).");
+
         await _repo.DeleteAsync(id);
         return AdminApiResponse<bool>.Ok(true, "Room deleted.");
     }

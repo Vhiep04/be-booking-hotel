@@ -101,10 +101,11 @@ namespace be_booking_hotel.Repositories.Implementations
                 .FirstOrDefaultAsync(h => h.HotelId == hotelId);
         }
 
-        public async Task<List<Room>> GetHotelRoomsAsync(int hotelId)
+        public async Task<List<Room>> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null)
         {
             return await _context.Rooms
                 .Include(r => r.RoomType.Facilities)
+                .Include(r => r.Reservations)
                 .Where(r => r.HotelId == hotelId)
                 .OrderBy(r => r.RoomType.PricePerNight)
                 .ToListAsync();
@@ -149,6 +150,7 @@ namespace be_booking_hotel.Repositories.Implementations
         {
             return await _context.Rooms
                 .Include(r => r.RoomType.Facilities)
+                .Include(r => r.Reservations)
                 .FirstOrDefaultAsync(r => r.HotelId == hotelId && r.RoomId == roomId);
         }
     }

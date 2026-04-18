@@ -133,64 +133,76 @@ namespace be_booking_hotel.Services
         {
             var query = hotels.AsQueryable();
 
-            // ✅ THÊM: Filter by CityName
+            // Filter CityName
             if (!string.IsNullOrWhiteSpace(filter.CityName))
             {
                 query = query.Where(h => h.City != null &&
-                                         h.City.Name.Contains(filter.CityName, StringComparison.OrdinalIgnoreCase));
+                    h.City.Name.Contains(filter.CityName, StringComparison.OrdinalIgnoreCase));
             }
 
-            // Filter by date availability
-            if (filter.CheckIn.HasValue && filter.CheckOut.HasValue)
+            // ✅ GỘP: RoomTypeName + CheckIn/CheckOut vào 1 filter
+            bool hasRoomTypeFilter = !string.IsNullOrWhiteSpace(filter.RoomTypeName);
+            bool hasDateFilter = filter.CheckIn.HasValue && filter.CheckOut.HasValue;
+
+            // ✅ FIX: Không dùng statement body { } trong lambda
+            if (hasRoomTypeFilter && hasDateFilter)
             {
+                // Cả 2: RoomType match VÀ có room trống trong khoảng ngày đó
+                query = query.Where(h => h.RoomTypes.Any(rt =>
+                    rt.TypeName.Contains(filter.RoomTypeName!, StringComparison.OrdinalIgnoreCase) &&
+                    rt.Rooms.Any(room =>
+                        !room.Reservations.Any(res =>
+                            filter.CheckIn!.Value < res.CheckOutDate &&
+                            filter.CheckOut!.Value > res.CheckInDate
+                        )
+                    )
+                ));
+            }
+            else if (hasRoomTypeFilter)
+            {
+                // Chỉ filter RoomType
+                query = query.Where(h => h.RoomTypes.Any(rt =>
+                    rt.TypeName.Contains(filter.RoomTypeName!, StringComparison.OrdinalIgnoreCase)
+                ));
+            }
+            else if (hasDateFilter)
+            {
+                // Chỉ filter ngày: hotel có ít nhất 1 room trống
                 query = query.Where(h => h.RoomTypes.Any(rt =>
                     rt.Rooms.Any(room =>
                         !room.Reservations.Any(res =>
-                            filter.CheckIn.Value < res.CheckOutDate &&
-                            filter.CheckOut.Value > res.CheckInDate
+                            filter.CheckIn!.Value < res.CheckOutDate &&
+                            filter.CheckOut!.Value > res.CheckInDate
                         )
                     )
                 ));
             }
 
-
-            // Filter by bed type
+            // Filter BedType (tách riêng vì không liên quan date)
             if (!string.IsNullOrWhiteSpace(filter.BedType))
             {
                 query = query.Where(h => h.RoomTypes.Any(r =>
                     r.TypeName.Contains(filter.BedType, StringComparison.OrdinalIgnoreCase)));
             }
 
-            if (!string.IsNullOrWhiteSpace(filter.RoomTypeName))
-            {
-                query = query.Where(h => h.RoomTypes.Any(r =>
-                    r.TypeName.Contains(filter.RoomTypeName, StringComparison.OrdinalIgnoreCase)));
-            }
-
-            // Filter by price range
+            // Filter price
             if (filter.MinPrice.HasValue)
-            {
                 query = query.Where(h => h.RoomTypes.Any(r => r.PricePerNight >= filter.MinPrice.Value));
-            }
 
             if (filter.MaxPrice.HasValue)
-            {
                 query = query.Where(h => h.RoomTypes.Any(r => r.PricePerNight <= filter.MaxPrice.Value));
-            }
 
-            // Filter by facilities
+            // Filter facilities
             if (filter.Facilities != null && filter.Facilities.Any())
             {
                 query = query.Where(h => h.RoomTypes.Any(r =>
                     filter.Facilities.All(fId =>
-                        r.Facilities.Any(f => f.FacilityId == fId)
-                    )
-                ));
+                        r.Facilities.Any(f => f.FacilityId == fId))));
             }
 
             var filteredHotels = query.ToList();
 
-            // Apply sorting
+            // Sorting
             if (!string.IsNullOrWhiteSpace(filter.SortBy))
             {
                 filteredHotels = filter.SortBy.ToLower() switch

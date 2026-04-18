@@ -249,23 +249,113 @@ public class AdminHotelsController : AdminBaseController
 }
 
 // ================================================================
+// ROOMTYPES
+// ================================================================
+[Route("api/admin/room-types")]
+public class AdminRoomTypesController : ControllerBase
+{
+    private readonly IAdminRoomTypeService _service;
+
+    public AdminRoomTypesController(IAdminRoomTypeService service) => _service = service;
+
+    // -----------------------------------------------------------------------
+    // GET /api/admin/room-types
+    //   ?page=1&pageSize=10&search=deluxe&hotelId=5
+    // -----------------------------------------------------------------------
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] int? hotelId = null)
+        => Ok(AdminApiResponse<AdminPagedResult<AdminRoomTypeResponse>>.Ok(
+            await _service.GetRoomTypesAsync(page, pageSize, search, hotelId)));
+
+    // -----------------------------------------------------------------------
+    // GET /api/admin/room-types/by-hotel/{hotelId}
+    //   Lấy toàn bộ room types của một hotel (dùng khi tạo Room, cần dropdown)
+    // -----------------------------------------------------------------------
+    [HttpGet("by-hotel/{hotelId:int}")]
+    public async Task<IActionResult> GetByHotel(int hotelId)
+        => Ok(AdminApiResponse<IEnumerable<AdminRoomTypeResponse>>.Ok(
+            await _service.GetByHotelAsync(hotelId)));
+
+    // -----------------------------------------------------------------------
+    // GET /api/admin/room-types/{id}
+    // -----------------------------------------------------------------------
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var rt = await _service.GetByIdAsync(id);
+        return rt == null
+            ? NotFound(AdminApiResponse<AdminRoomTypeResponse>.Fail("RoomType not found."))
+            : Ok(AdminApiResponse<AdminRoomTypeResponse>.Ok(rt));
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /api/admin/room-types
+    //   Body: { hotelId, typeName, description, pricePerNight, capacity,
+    //           imgUrl, facilityIds: [1,2,3] }
+    // -----------------------------------------------------------------------
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] AdminRoomTypeRequest request)
+    {
+        var result = await _service.CreateAsync(request);
+        if (!result.Success) return BadRequest(result);
+        return CreatedAtAction(nameof(GetById), new { id = result.Data!.RoomTypeId }, result);
+    }
+
+    // -----------------------------------------------------------------------
+    // PUT /api/admin/room-types/{id}
+    //   Cập nhật thông tin + đồng bộ lại danh sách facilities (replace)
+    // -----------------------------------------------------------------------
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] AdminRoomTypeRequest request)
+    {
+        var result = await _service.UpdateAsync(id, request);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    // -----------------------------------------------------------------------
+    // DELETE /api/admin/room-types/{id}
+    //   Chỉ xóa được khi không còn Room instance nào thuộc type này
+    // -----------------------------------------------------------------------
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var result = await _service.DeleteAsync(id);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+}
+// ================================================================
 // ROOMS
 // ================================================================
 [Route("api/admin/rooms")]
-public class AdminRoomsController : AdminBaseController
+public class AdminRoomsController : ControllerBase
 {
     private readonly IAdminRoomService _service;
+
     public AdminRoomsController(IAdminRoomService service) => _service = service;
 
+    // -----------------------------------------------------------------------
+    // GET /api/admin/rooms
+    //   ?page=1&pageSize=10&search=101&hotelId=3&roomType=Deluxe
+    // -----------------------------------------------------------------------
     [HttpGet]
     public async Task<IActionResult> GetAll(
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10,
-        [FromQuery] string? search = null, [FromQuery] int? hotelId = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] int? hotelId = null,
         [FromQuery] string? roomType = null)
         => Ok(AdminApiResponse<AdminPagedResult<AdminRoomResponse>>.Ok(
             await _service.GetRoomsAsync(page, pageSize, search, hotelId, roomType)));
 
-    [HttpGet("{id}")]
+    // -----------------------------------------------------------------------
+    // GET /api/admin/rooms/{id}
+    //   Trả về Room kèm thông tin RoomType (price, capacity, imgUrl, facilities)
+    // -----------------------------------------------------------------------
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var room = await _service.GetRoomByIdAsync(id);
@@ -274,26 +364,69 @@ public class AdminRoomsController : AdminBaseController
             : Ok(AdminApiResponse<AdminRoomResponse>.Ok(room));
     }
 
-    [HttpGet("by-hotel/{hotelId}")]
+    // -----------------------------------------------------------------------
+    // GET /api/admin/rooms/by-hotel/{hotelId}
+    // -----------------------------------------------------------------------
+    [HttpGet("by-hotel/{hotelId:int}")]
     public async Task<IActionResult> GetByHotel(int hotelId)
         => Ok(AdminApiResponse<IEnumerable<AdminRoomResponse>>.Ok(
             await _service.GetRoomsByHotelAsync(hotelId)));
 
+    // -----------------------------------------------------------------------
+    // POST /api/admin/rooms
+    //   Tạo một Room đơn lẻ.
+    //   Body: { hotelId, roomTypeId, roomNumber, status? }
+    //   Lưu ý: price/capacity/imgUrl/facilities đều lấy từ RoomType, không truyền lại.
+    // -----------------------------------------------------------------------
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] AdminRoomRequest request)
     {
         var result = await _service.CreateRoomAsync(request);
+        if (!result.Success) return BadRequest(result);
         return CreatedAtAction(nameof(GetById), new { id = result.Data!.RoomId }, result);
     }
 
-    [HttpPut("{id}")]
+    // -----------------------------------------------------------------------
+    // POST /api/admin/rooms/bulk
+    //   Tạo nhiều Room cùng RoomType trong một lần.
+    //   Body: { hotelId, roomTypeId, roomNumbers: ["101","102","103"] }
+    // -----------------------------------------------------------------------
+    [HttpPost("bulk")]
+    public async Task<IActionResult> BulkCreate([FromBody] AdminBulkCreateRoomRequest request)
+    {
+        var result = await _service.BulkCreateRoomsAsync(request);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    // -----------------------------------------------------------------------
+    // PUT /api/admin/rooms/{id}
+    //   Cập nhật Room: có thể đổi RoomType, RoomNumber, Status.
+    //   Body: { hotelId, roomTypeId, roomNumber, status? }
+    // -----------------------------------------------------------------------
+    [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] AdminRoomRequest request)
     {
         var result = await _service.UpdateRoomAsync(id, request);
-        return result.Success ? Ok(result) : NotFound(result);
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
-    [HttpDelete("{id}")]
+    // -----------------------------------------------------------------------
+    // PATCH /api/admin/rooms/{id}/status
+    //   Chỉ cập nhật trạng thái: Available | Occupied | Maintenance
+    //   Body: { "status": "Maintenance" }
+    // -----------------------------------------------------------------------
+    [HttpPatch("{id:int}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] AdminUpdateRoomStatusRequest request)
+    {
+        var result = await _service.UpdateRoomStatusAsync(id, request);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    // -----------------------------------------------------------------------
+    // DELETE /api/admin/rooms/{id}
+    //   Không cho xóa nếu còn reservation Pending/Confirmed.
+    // -----------------------------------------------------------------------
+    [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteRoomAsync(id);
