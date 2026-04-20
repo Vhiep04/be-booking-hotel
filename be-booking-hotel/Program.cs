@@ -147,6 +147,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IFavouriteService, FavouriteService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IAdminDashboardExportService, AdminDashboardExportService>();
 builder.Services.AddSignalR();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<RoomContextService>();

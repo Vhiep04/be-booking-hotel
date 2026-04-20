@@ -1,5 +1,6 @@
 ﻿using be_booking_hotel.DTOs.Admin;
 using be_booking_hotel.Models;
+using be_booking_hotel.Repositories.Interfaces;
 using be_booking_hotel.Services.Admin.Interfaces;
 using be_booking_hotel.Services.Implements;
 using be_booking_hotel.Services.Interfaces;
@@ -19,11 +20,35 @@ public abstract class AdminBaseController : ControllerBase { }
 public class AdminDashboardController : AdminBaseController
 {
     private readonly IAdminDashboardService _service;
-    public AdminDashboardController(IAdminDashboardService service) => _service = service;
+    private readonly IAdminDashboardExportService _exportService;
+
+    public AdminDashboardController(
+        IAdminDashboardService service,
+        IAdminDashboardExportService exportService)
+    {
+        _service = service;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     public async Task<ActionResult<AdminApiResponse<AdminDashboardStats>>> GetStats()
         => Ok(AdminApiResponse<AdminDashboardStats>.Ok(await _service.GetStatsAsync()));
+
+    /// <summary>
+    /// Export dashboard data to Excel (.xlsx)
+    /// GET /api/admin/dashboard/export
+    /// </summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportExcel()
+    {
+        var bytes = await _exportService.ExportDashboardAsync();
+        var fileName = $"dashboard_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName
+        );
+    }
 }
 
 // ================================================================
