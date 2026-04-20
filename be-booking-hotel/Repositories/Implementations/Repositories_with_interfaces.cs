@@ -486,6 +486,42 @@ public class AdminReservationRepository : IAdminReservationRepository
 
     public async Task<int> CountByStatusAsync(string status) =>
         await _ctx.Reservations.CountAsync(r => r.PaymentStatus == status);
+
+    public async Task<int?> GetRoomIdByReservationAsync(int reservationId)
+    {
+        return await _ctx.Reservations
+            .Where(r => r.ReservationId == reservationId)
+            .Select(r => (int?)r.RoomId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task SyncRoomStatusAsync(int reservationId, string newPaymentStatus)
+    {
+        var reservation = await _ctx.Reservations.FindAsync(reservationId);
+        if (reservation == null) return;
+
+        string roomStatus;
+        if (newPaymentStatus == "Confirmed")
+        {
+            roomStatus = "Occupied";
+        }
+        else
+        {
+            var hasOtherConfirmed = await _ctx.Reservations.AnyAsync(r =>
+                r.RoomId == reservation.RoomId &&
+                r.ReservationId != reservationId &&
+                r.PaymentStatus == "Confirmed"
+            );
+            roomStatus = hasOtherConfirmed ? "Occupied" : "Available";
+        }
+
+        var room = await _ctx.Rooms.FindAsync(reservation.RoomId);
+        if (room != null)
+        {
+            room.Status = roomStatus;
+            await _ctx.SaveChangesAsync();
+        }
+    }
 }
 
 // ===== FEEDBACK =====

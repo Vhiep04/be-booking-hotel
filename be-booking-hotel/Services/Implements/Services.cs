@@ -868,29 +868,40 @@ public class AdminReservationService : IAdminReservationService
         if (!valid.Contains(status))
             return AdminApiResponse<bool>.Fail($"Invalid status. Valid values: {string.Join(", ", valid)}");
 
-        // Lấy reservation hiện tại để check transition
         var reservation = await _repo.GetByIdAsync(id);
         if (reservation == null)
             return AdminApiResponse<bool>.Fail("Reservation not found.");
 
         var current = reservation.PaymentStatus ?? "Pending";
 
-        // Validate transition
         var allowedTransitions = new Dictionary<string, string[]>
         {
             ["Pending"] = new[] { "Confirmed", "Cancelled" },
             ["Confirmed"] = new[] { "Completed", "Cancelled" },
-            ["Completed"] = Array.Empty<string>(),   // terminal
-            ["Cancelled"] = Array.Empty<string>()    // terminal
+            ["Completed"] = Array.Empty<string>(),
+            ["Cancelled"] = Array.Empty<string>()
         };
 
         if (!allowedTransitions.ContainsKey(current) || !allowedTransitions[current].Contains(status))
             return AdminApiResponse<bool>.Fail($"Cannot transition from '{current}' to '{status}'.");
 
+        // ✅ Update PaymentStatus
         var updated = await _repo.UpdateStatusAsync(id, status);
-        return updated
-            ? AdminApiResponse<bool>.Ok(true, "Status updated.")
-            : AdminApiResponse<bool>.Fail("Update failed.");
+        if (!updated)
+            return AdminApiResponse<bool>.Fail("Update failed.");
+
+        // ✅ Tự động update Room.Status theo PaymentStatus
+        var roomStatus = status switch
+        {
+            "Confirmed" => "Occupied",
+            "Pending" or "Cancelled" or "Completed" => "Available",
+            _ => null
+        };
+
+        if (roomStatus != null)
+            await _repo.SyncRoomStatusAsync(id, status);
+
+        return AdminApiResponse<bool>.Ok(true, "Status updated.");
     }
 
     private static AdminReservationResponse MapReservation(Reservation r, ApplicationUser? user) => new()

@@ -45,6 +45,12 @@ namespace be_booking_hotel.Repositories.Implements
             };
 
             _db.Reservations.Add(reservation);
+
+            // ✅ Update Room.Status = "Occupied"
+            var room = await _db.Rooms.FindAsync(request.RoomId);
+            if (room != null)
+                room.Status = "Occupied";
+
             await _db.SaveChangesAsync();
 
             _logger.LogInformation("Reservation created: {Id}", reservation.ReservationId);

@@ -104,6 +104,10 @@ public interface IAdminReservationRepository
     Task<decimal> GetRevenueThisMonthAsync();
     Task<List<AdminRevenueByMonthDto>> GetRevenueChartAsync(int months);
     Task<int> CountByStatusAsync(string status);
+    // Thêm vào interface
+    Task<int?> GetRoomIdByReservationAsync(int reservationId);
+    // ? ??i tên method c? thành SyncRoomStatusAsync
+    Task SyncRoomStatusAsync(int reservationId, string newPaymentStatus);
 }
 
 // ===== FEEDBACK =====

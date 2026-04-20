@@ -19,7 +19,7 @@ namespace be_booking_hotel.Controllers
     /// </summary>
     [ApiController]
     [Route("api/upload")]
-    [Authorize(Roles = "Admin,User")]
+    [Authorize(Roles = "Admin,User,Manager")]
     public class UploadController : ControllerBase
     {
         private readonly ICloudinaryService _cloudinary;
