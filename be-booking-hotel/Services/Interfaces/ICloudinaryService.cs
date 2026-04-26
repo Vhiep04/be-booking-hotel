@@ -6,5 +6,6 @@ namespace be_booking_hotel.Services.Interfaces
     {
         Task<CloudinaryUploadResult> UploadImageAsync(IFormFile file, string folder);
         Task<bool> DeleteImageAsync(string publicId);
+        Task<CloudinaryFolderResult> GetImagesByFolderAsync(string folder, int maxResults = 100, string? nextCursor = null);
     }
 }

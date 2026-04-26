@@ -386,3 +386,22 @@ public class AdminUpdateRoomStatusRequest
 {
     public string Status { get; set; } = string.Empty;
 }
+
+public class CloudinaryFolderResult
+{
+    public bool Success { get; set; }
+    public string? Error { get; set; }
+    public List<CloudinaryImageInfo> Images { get; set; } = new();
+    public int TotalCount { get; set; }
+    public string? NextCursor { get; set; } // dùng để phân trang
+}
+
+public class CloudinaryImageInfo
+{
+    public string Url { get; set; } = string.Empty;
+    public string PublicId { get; set; } = string.Empty;
+    public long Bytes { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public DateTime CreatedAt { get; set; }
+}

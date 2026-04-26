@@ -97,5 +97,62 @@ namespace be_booking_hotel.Services.Implements
                 return false;
             }
         }
+
+        public async Task<CloudinaryFolderResult> GetImagesByFolderAsync(string folder, int maxResults = 100, string? nextCursor = null)
+        {
+            try
+            {
+                if (!AllowedFolders.Contains(folder.ToLower()))
+                    return new CloudinaryFolderResult
+                    {
+                        Success = false,
+                        Error = $"Invalid folder. Allowed: {string.Join(", ", AllowedFolders)}"
+                    };
+
+                folder = folder.ToLower();
+
+                var listParams = new ListResourcesByPrefixParams
+                {
+                    Prefix = folder + "/",
+                    Type = "upload",
+                    MaxResults = maxResults,
+                    NextCursor = nextCursor
+                };
+
+                var result = await _cloudinary.ListResourcesAsync(listParams);
+
+                if (result.Resources == null || !result.Resources.Any())
+                {
+                    listParams.Prefix = folder;
+                    listParams.NextCursor = null;
+                    result = await _cloudinary.ListResourcesAsync(listParams);
+                }
+
+                if (result == null)
+                    return new CloudinaryFolderResult { Success = false, Error = "No response from Cloudinary." };
+
+                var images = result.Resources.Select(r => new CloudinaryImageInfo
+                {
+                    Url = r.SecureUrl.ToString(),
+                    PublicId = r.PublicId,
+                    Bytes = r.Bytes,
+                    Width = r.Width,
+                    Height = r.Height,
+                }).ToList();
+
+                return new CloudinaryFolderResult
+                {
+                    Success = true,
+                    Images = images,
+                    TotalCount = images.Count(),
+                    NextCursor = result.NextCursor
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception during Cloudinary folder listing for folder: {Folder}", folder);
+                return new CloudinaryFolderResult { Success = false, Error = "Failed to retrieve images: " + ex.Message };
+            }
+        }
     }
 }

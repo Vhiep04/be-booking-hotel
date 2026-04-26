@@ -92,6 +92,7 @@ public class AdminHotelRepository : AdminBaseRepository<Hotel>, IAdminHotelRepos
         var query = _ctx.Hotels
             .Include(h => h.City)
             .Include(h => h.RoomTypes)
+            .ThenInclude(rt => rt.Rooms)
             .Include(h => h.Feedbacks)
             .Include(h => h.HotelImages)
             .AsQueryable();
@@ -815,7 +816,7 @@ public class AdminDashboardRepository : IAdminDashboardRepository
             .Take(5)
             .Select(p => new AdminActivityDto
             {
-                Message = $"Payment received - ${p.Amount}",
+                Message = $"Payment received - {p.Amount} đ",
                 Time = p.PaymentDate,
                 Type = "payment"
             })

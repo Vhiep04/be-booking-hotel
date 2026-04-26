@@ -97,5 +97,32 @@ namespace be_booking_hotel.Controllers
                 ? Ok(AdminApiResponse<bool>.Ok(true, "Image deleted from Cloudinary."))
                 : BadRequest(AdminApiResponse<bool>.Fail("Failed to delete image."));
         }
+
+        /// <summary>
+        /// Lấy tất cả ảnh trong một folder trên Cloudinary.
+        /// Query: folder (string: "cities" | "hotels" | "rooms" | "avatars")
+        ///        maxResults (int, default 100, max 500)
+        ///        nextCursor (string, dùng để phân trang - lấy từ response trước)
+        /// </summary>
+        [HttpGet("images")]
+        public async Task<IActionResult> GetImagesByFolder(
+            [FromQuery] string folder,
+            [FromQuery] int maxResults = 100,
+            [FromQuery] string? nextCursor = null)
+        {
+            if (string.IsNullOrWhiteSpace(folder))
+                return BadRequest(AdminApiResponse<object>.Fail("folder is required."));
+
+            if (maxResults < 1 || maxResults > 500)
+                return BadRequest(AdminApiResponse<object>.Fail("maxResults must be between 1 and 500."));
+
+            var result = await _cloudinary.GetImagesByFolderAsync(folder, maxResults, nextCursor);
+
+            if (!result.Success)
+                return BadRequest(AdminApiResponse<object>.Fail(result.Error ?? "Failed to retrieve images."));
+
+            return Ok(AdminApiResponse<CloudinaryFolderResult>.Ok(result,
+                $"Retrieved {result.Images.Count} images from folder '{folder}'."));
+        }
     }
 }
