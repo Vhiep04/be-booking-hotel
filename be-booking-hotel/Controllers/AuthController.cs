@@ -11,6 +11,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Google.Apis.Auth;
+using be_booking_hotel.Repositories.Implementations;
+using Microsoft.SqlServer.Server;
 
 namespace be_booking_hotel.Controllers
 {
@@ -619,36 +622,242 @@ namespace be_booking_hotel.Controllers
             });
         }
 
-        private async Task<string> GenerateJwtToken(ApplicationUser user)
+        [HttpPost("login-google-code")]
+        public async Task<IActionResult> LoginWithGoogleCode([FromBody] GoogleCodeDto model)
         {
-            var jwtSettings = _configuration.GetSection("JwtSettings");
-            var secretKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!));
+            // Đổi authorization_code lấy token từ Google
+            using var httpClient = new HttpClient();
 
-            var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Email, user.Email!),
-            new Claim(ClaimTypes.GivenName, user.FirstName),
-            new Claim(ClaimTypes.Surname, user.LastName),
-            new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
+            var tokenRequest = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["code"] = model.Code,
+                ["client_id"] = _configuration["Authentication:Google:ClientId"]!,
+                ["client_secret"] = _configuration["Authentication:Google:ClientSecret"]!,
+                ["redirect_uri"] = "postmessage",   // bắt buộc khi dùng popup
+                ["grant_type"] = "authorization_code"
+            });
 
-            var roles = await _authRepository.GetRolesAsync(user);
-            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+            var tokenResponse = await httpClient.PostAsync(
+                "https://oauth2.googleapis.com/token", tokenRequest);
 
-            var credentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
+            if (!tokenResponse.IsSuccessStatusCode)
+                return Unauthorized(new { success = false, message = "Failed to exchange Google code" });
 
-            var token = new JwtSecurityToken(
-                issuer: jwtSettings["Issuer"],
-                audience: jwtSettings["Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddMinutes(Convert.ToDouble(jwtSettings["ExpirationMinutes"])),
-                signingCredentials: credentials
-            );
+            var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
+            var tokenData = System.Text.Json.JsonDocument.Parse(tokenJson).RootElement;
+            var idToken = tokenData.GetProperty("id_token").GetString()!;
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            // Verify idToken (tái dụng logic cũ)
+            GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { _configuration["Authentication:Google:ClientId"] }
+                });
+            }
+            catch
+            {
+                return Unauthorized(new { success = false, message = "Invalid Google token" });
+            }
+
+            // ... phần tìm/tạo user giữ nguyên như endpoint login-google cũ
+            var user = await _authRepository.FindByEmailAsync(payload.Email);
+
+            if (user == null)
+            {
+                // 3a. Chưa có account → tạo mới (không cần OTP vì Google đã verify email)
+                user = new ApplicationUser
+                {
+                    UserName = payload.Email,
+                    Email = payload.Email,
+                    FirstName = payload.GivenName ?? "",
+                    LastName = payload.FamilyName ?? "",
+                    AvatarUrl = payload.Picture,
+                    EmailConfirmed = true, // ✅ Google đã verify rồi
+                    CreatedAt = DateTime.Now
+                };
+
+                var result = await _authRepository.CreateUserAsync(user, Guid.NewGuid().ToString() + "!Aa1");
+                if (!result.Succeeded)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Failed to create account",
+                        errors = result.Errors.Select(e => e.Description)
+                    });
+                }
+
+                await _authRepository.AddToRoleAsync(user, "User");
+
+                try { await _notificationService.NotifyNewUserRegistered(user); }
+                catch { /* không block luồng */ }
+            }
+            else
+            {
+                // 3b. Đã có account nhưng chưa verify → tự động verify luôn
+                if (!user.EmailConfirmed)
+                {
+                    user.EmailConfirmed = true;
+                    await _authRepository.UpdateUserAsync(user);
+                }
+
+                // Cập nhật avatar nếu chưa có
+                if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payload.Picture))
+                {
+                    user.AvatarUrl = payload.Picture;
+                    await _authRepository.UpdateUserAsync(user);
+                }
+            }
+
+            // 4. Tạo JWT token của hệ thống (giống login thường)
+            var token = await GenerateJwtToken(user);
+            var expiration = DateTime.Now.AddMinutes(
+                Convert.ToDouble(_configuration["JwtSettings:ExpirationMinutes"]));
+
+            return Ok(new
+            {
+                success = true,
+                message = "Google login successful",
+                data = new AuthResponseDto
+                {
+                    Token = token,
+                    UserId = user.Id,
+                    Email = user.Email!,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    PhoneNumber = user.PhoneNumber ?? "",
+                    BirthDate = user.BirthDate,
+                    AvatarUrl = user.AvatarUrl ?? "",
+                    Expiration = expiration
+                }
+            });
         }
-    }
+
+        [HttpPost("login-google")]
+            public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleLoginDto model)
+            {
+                // 1. Verify id_token với Google
+                GoogleJsonWebSignature.Payload payload;
+                try
+                {
+                    var settings = new GoogleJsonWebSignature.ValidationSettings
+                    {
+                        Audience = new[] { _configuration["Authentication:Google:ClientId"] }
+                    };
+                    payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken, settings);
+                }
+                catch (InvalidJwtException)
+                {
+                    return Unauthorized(new { success = false, message = "Invalid Google token" });
+                }
+
+                // 2. Tìm user theo email
+                var user = await _authRepository.FindByEmailAsync(payload.Email);
+
+                if (user == null)
+                {
+                    // 3a. Chưa có account → tạo mới (không cần OTP vì Google đã verify email)
+                    user = new ApplicationUser
+                    {
+                        UserName = payload.Email,
+                        Email = payload.Email,
+                        FirstName = payload.GivenName ?? "",
+                        LastName = payload.FamilyName ?? "",
+                        AvatarUrl = payload.Picture,
+                        EmailConfirmed = true, // ✅ Google đã verify rồi
+                        CreatedAt = DateTime.Now
+                    };
+
+                    var result = await _authRepository.CreateUserAsync(user, Guid.NewGuid().ToString() + "!Aa1");
+                    if (!result.Succeeded)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Failed to create account",
+                            errors = result.Errors.Select(e => e.Description)
+                        });
+                    }
+
+                    await _authRepository.AddToRoleAsync(user, "User");
+
+                    try { await _notificationService.NotifyNewUserRegistered(user); }
+                    catch { /* không block luồng */ }
+                }
+                else
+                {
+                    // 3b. Đã có account nhưng chưa verify → tự động verify luôn
+                    if (!user.EmailConfirmed)
+                    {
+                        user.EmailConfirmed = true;
+                        await _authRepository.UpdateUserAsync(user);
+                    }
+
+                    // Cập nhật avatar nếu chưa có
+                    if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payload.Picture))
+                    {
+                        user.AvatarUrl = payload.Picture;
+                        await _authRepository.UpdateUserAsync(user);
+                    }
+                }
+
+                // 4. Tạo JWT token của hệ thống (giống login thường)
+                var token = await GenerateJwtToken(user);
+                var expiration = DateTime.Now.AddMinutes(
+                    Convert.ToDouble(_configuration["JwtSettings:ExpirationMinutes"]));
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Google login successful",
+                    data = new AuthResponseDto
+                    {
+                        Token = token,
+                        UserId = user.Id,
+                        Email = user.Email!,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        PhoneNumber = user.PhoneNumber ?? "",
+                        BirthDate = user.BirthDate,
+                        AvatarUrl = user.AvatarUrl ?? "",
+                        Expiration = expiration
+                    }
+                });
+            }
+        private async Task<string> GenerateJwtToken(ApplicationUser user)
+            {
+                var jwtSettings = _configuration.GetSection("JwtSettings");
+                var secretKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!));
+
+                var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Email, user.Email!),
+                new Claim(ClaimTypes.GivenName, user.FirstName),
+                new Claim(ClaimTypes.Surname, user.LastName),
+                new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+                var roles = await _authRepository.GetRolesAsync(user);
+                claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+                var credentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
+
+                var token = new JwtSecurityToken(
+                    issuer: jwtSettings["Issuer"],
+                    audience: jwtSettings["Audience"],
+                    claims: claims,
+                    expires: DateTime.Now.AddMinutes(Convert.ToDouble(jwtSettings["ExpirationMinutes"])),
+                    signingCredentials: credentials
+                );
+
+                return new JwtSecurityTokenHandler().WriteToken(token);
+            }
+
+
+        }
 }
