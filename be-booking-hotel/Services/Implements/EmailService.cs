@@ -2,6 +2,7 @@
 using MailKit.Security;
 using MimeKit;
 using MailKit.Net.Smtp;
+using be_booking_hotel.DTOs.Payment;
 
 
 namespace be_booking_hotel.Services.Implements
@@ -164,6 +165,261 @@ namespace be_booking_hotel.Services.Implements
                 _logger.LogError($"Failed to send email to {toEmail}: {ex.Message}");
                 throw;
             }
+        }
+
+        public async Task SendPaymentReceiptAsync(string toEmail, string recipientName, SendReceiptRequest receipt)
+        {
+            var subject = $"Biên lai thanh toán #{receipt.TransactionId} - Hotel Booking";
+            var formattedAmount = string.Format("{0:N0}", receipt.Amount);
+            var checkIn = receipt.CheckInDate.ToString("dd/MM/yyyy");
+            var checkOut = receipt.CheckOutDate.ToString("dd/MM/yyyy");
+            var nights = receipt.CheckOutDate.DayNumber - receipt.CheckInDate.DayNumber;
+
+            var body = $@"
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                    .content {{ background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; }}
+                    .amount-box {{ background: #f0fdf4; border: 2px solid #10b981; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }}
+                    .amount {{ font-size: 32px; font-weight: bold; color: #059669; }}
+                    .section {{ margin: 20px 0; }}
+                    .section-title {{ font-size: 14px; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #d1fae5; padding-bottom: 6px; margin-bottom: 12px; }}
+                    .info-table {{ width: 100%; border-collapse: collapse; }}
+                    .info-table tr {{ border-bottom: 1px solid #e5e7eb; }}
+                    .info-table tr:last-child {{ border-bottom: none; }}
+                    .info-table td {{ padding: 10px 8px; font-size: 14px; }}
+                    .info-table td:first-child {{ color: #6b7280; width: 45%; }}
+                    .info-table td:last-child {{ font-weight: 600; color: #111827; text-align: right; }}
+                    .badge {{ background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }}
+                    .footer {{ text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px; }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h1>🏨 Hotel Booking</h1>
+                        <p style='margin:0; opacity:0.9;'>Biên lai thanh toán</p>
+                    </div>
+                    <div class='content'>
+                        <h2>Xin chào {recipientName}!</h2>
+                        <p>Thanh toán của bạn đã được xử lý thành công. Dưới đây là chi tiết đặt phòng:</p>
+
+                        <div class='amount-box'>
+                            <p style='margin:0; color:#6b7280; font-size:13px;'>SỐ TIỀN ĐÃ THANH TOÁN</p>
+                            <div class='amount'>{formattedAmount} VND</div>
+                        </div>
+
+                        <div class='section'>
+                            <div class='section-title'>👤 Thông tin người đặt</div>
+                            <table class='info-table'>
+                                <tr>
+                                    <td>Họ và tên</td>
+                                    <td>{recipientName}</td>
+                                </tr>
+                                <tr>
+                                    <td>Email</td>
+                                    <td>{toEmail}</td>
+                                </tr>
+                                <tr>
+                                    <td>Số điện thoại</td>
+                                    <td>{receipt.PhoneNumber}</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class='section'>
+                            <div class='section-title'>🏨 Thông tin khách sạn</div>
+                            <table class='info-table'>
+                                <tr>
+                                    <td>Tên khách sạn</td>
+                                    <td>{receipt.HotelName}</td>
+                                </tr>
+                                <tr>
+                                    <td>Địa chỉ</td>
+                                    <td>{receipt.HotelAddress}</td>
+                                </tr>
+                                <tr>
+                                    <td>Ngày check-in</td>
+                                    <td>{checkIn}</td>
+                                </tr>
+                                <tr>
+                                    <td>Ngày check-out</td>
+                                    <td>{checkOut}</td>
+                                </tr>
+                                <tr>
+                                    <td>Số đêm</td>
+                                    <td>{nights} đêm</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class='section'>
+                            <div class='section-title'>💳 Thông tin giao dịch</div>
+                            <table class='info-table'>
+                                <tr>
+                                    <td>Mô tả đơn hàng</td>
+                                    <td>{receipt.OrderDescription}</td>
+                                </tr>
+                                <tr>
+                                    <td>Mã giao dịch</td>
+                                    <td style='color:#059669;'>{receipt.TransactionId}</td>
+                                </tr>
+                                <tr>
+                                    <td>Mã đơn hàng</td>
+                                    <td>{receipt.OrderId}</td>
+                                </tr>
+                                <tr>
+                                    <td>Phương thức thanh toán</td>
+                                    <td>{receipt.PaymentMethod}</td>
+                                </tr>
+                                <tr>
+                                    <td>Trạng thái</td>
+                                    <td><span class='badge'>✓ Thành công</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Thời gian</td>
+                                    <td>{DateTime.Now:dd/MM/yyyy HH:mm:ss}</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <p style='color:#6b7280; font-size:13px;'>
+                            Nếu bạn có bất kỳ thắc mắc nào về giao dịch này, vui lòng liên hệ với chúng tôi kèm mã giao dịch 
+                            <strong>{receipt.TransactionId}</strong>.
+                        </p>
+                    </div>
+                    <div class='footer'>
+                        <p>© {DateTime.Now.Year} Hotel Booking System. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>";
+
+            await SendEmailAsync(toEmail, subject, body);
+        }
+
+        public async Task SendCashBookingConfirmationAsync(string toEmail, string recipientName, CashReservationRequest request)
+        {
+            var subject = $"Xác nhận đặt phòng - Hotel Booking";
+            var checkIn = request.CheckInDate.ToString("dd/MM/yyyy");
+            var checkOut = request.CheckOutDate.ToString("dd/MM/yyyy");
+            var nights = request.CheckOutDate.DayNumber - request.CheckInDate.DayNumber;
+            var formattedAmount = string.Format("{0:N0}", request.Amount);
+
+            var body = $@"
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                    .content {{ background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; }}
+                    .section {{ margin: 20px 0; }}
+                    .section-title {{ font-size: 14px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #dbeafe; padding-bottom: 6px; margin-bottom: 12px; }}
+                    .info-table {{ width: 100%; border-collapse: collapse; }}
+                    .info-table tr {{ border-bottom: 1px solid #e5e7eb; }}
+                    .info-table tr:last-child {{ border-bottom: none; }}
+                    .info-table td {{ padding: 10px 8px; font-size: 14px; }}
+                    .info-table td:first-child {{ color: #6b7280; width: 45%; }}
+                    .info-table td:last-child {{ font-weight: 600; color: #111827; text-align: right; }}
+                    .notice-box {{ background: #fef9c3; border: 1px solid #fbbf24; padding: 16px; border-radius: 8px; margin: 20px 0; }}
+                    .badge-pending {{ background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }}
+                    .amount-row td {{ font-size: 16px; color: #1d4ed8 !important; }}
+                    .footer {{ text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px; }}
+                </style>
+            </head>
+            <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>🏨 Hotel Booking</h1>
+                    <p style='margin:0; opacity:0.9;'>Xác nhận đặt phòng</p>
+                </div>
+                <div class='content'>
+                    <h2>Xin chào {recipientName}!</h2>
+                    <p>Đặt phòng của bạn đã được ghi nhận. Vui lòng thanh toán tại quầy lễ tân khi nhận phòng.</p>
+
+                    <div class='notice-box'>
+                        ⚠️ <strong>Lưu ý:</strong> Đây là xác nhận đặt phòng, <u>chưa phải biên lai thanh toán</u>. 
+                        Vui lòng thanh toán bằng tiền mặt tại khách sạn khi check-in.
+                    </div>
+
+                    <div class='section'>
+                        <div class='section-title'>👤 Thông tin người đặt</div>
+                        <table class='info-table'>
+                            <tr>
+                                <td>Họ và tên</td>
+                                <td>{recipientName}</td>
+                            </tr>
+                            <tr>
+                                <td>Email</td>
+                                <td>{toEmail}</td>
+                            </tr>
+                            <tr>
+                                <td>Số điện thoại</td>
+                                <td>{request.PhoneNumber}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class='section'>
+                        <div class='section-title'>🏨 Thông tin khách sạn</div>
+                        <table class='info-table'>
+                            <tr>
+                                <td>Tên khách sạn</td>
+                                <td>{request.HotelName}</td>
+                            </tr>
+                            <tr>
+                                <td>Địa chỉ</td>
+                                <td>{request.HotelAddress}</td>
+                            </tr>
+                            <tr>
+                                <td>Ngày check-in</td>
+                                <td>{checkIn}</td>
+                            </tr>
+                            <tr>
+                                <td>Ngày check-out</td>
+                                <td>{checkOut}</td>
+                            </tr>
+                            <tr>
+                                <td>Số đêm</td>
+                                <td>{nights} đêm</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                <div class='section'>
+                    <div class='section-title'>💰 Thông tin thanh toán</div>
+                    <table class='info-table'>
+                        <tr>
+                            <td>Phương thức</td>
+                            <td>Tiền mặt tại quầy</td>
+                        </tr>
+                        <tr>
+                            <td>Trạng thái</td>
+                            <td><span class='badge-pending'>⏳ Chờ thanh toán</span></td>
+                        </tr>
+                        <tr class='amount-row'>
+                            <td>Tổng tiền cần thanh toán</td>
+                            <td style='color:#1d4ed8; font-size:16px;'>{formattedAmount} VND</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <p style='color:#6b7280; font-size:13px;'>
+                    Nếu bạn cần hỗ trợ, vui lòng liên hệ với chúng tôi qua email hoặc hotline.
+                </p>
+            </div>
+                <div class='footer'>
+                    <p>© {DateTime.Now.Year} Hotel Booking System. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
+
+            await SendEmailAsync(toEmail, subject, body);
         }
     }
 }

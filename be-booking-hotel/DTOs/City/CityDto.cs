@@ -11,6 +11,8 @@
         public List<int>? Facilities { get; set; }
         public string? SortBy { get; set; } // price_asc, price_desc, rating_desc, name_asc
         public decimal? MinPrice { get; set; }
+        public string? RoomTypeName { get; set; }
+
         public decimal? MaxPrice { get; set; }
     }
 
@@ -43,6 +45,8 @@
         public string Name { get; set; }
         public string Location { get; set; }
         public string? Description { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
         public decimal MinPricePerNight { get; set; }
         public decimal MaxPricePerNight { get; set; }
         public string? PrimaryImageUrl { get; set; }

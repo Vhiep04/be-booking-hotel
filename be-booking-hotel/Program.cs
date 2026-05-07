@@ -12,6 +12,12 @@ using be_booking_hotel.Services.Interfaces;
 using be_booking_hotel.Services.Implementations;
 using be_booking_hotel.Repositories;
 using be_booking_hotel.Services;
+using be_booking_hotel.Repositories.Admin.Interfaces;
+using be_booking_hotel.Repositories.Admin;
+using be_booking_hotel.Services.Admin.Interfaces;
+using be_booking_hotel.Services.Admin;
+using be_booking_hotel.Repositories.Implements;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +70,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
+// Sửa JWT Bearer - thêm events để đọc token từ query string
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -76,6 +83,22 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
     };
+
+    // ← THÊM ĐOẠN NÀY cho SignalR
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Register Repositories
@@ -83,6 +106,24 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IHotelRepository, HotelRepository>();
 builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
 builder.Services.AddScoped<ICityRepository, CityRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAdminCityRepository, AdminCityRepository>();
+builder.Services.AddScoped<IAdminHotelRepository, AdminHotelRepository>();
+builder.Services.AddScoped<IAdminRoomRepository, AdminRoomRepository>();
+builder.Services.AddScoped<IAdminFacilityRepository, AdminFacilityRepository>();
+builder.Services.AddScoped<IAdminReservationRepository, AdminReservationRepository>();
+builder.Services.AddScoped<IAdminFeedbackRepository, AdminFeedbackRepository>();
+builder.Services.AddScoped<IAdminHotelImageRepository, AdminHotelImageRepository>();
+builder.Services.AddScoped<IAdminCityImageRepository, AdminCityImageRepository>();
+builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+builder.Services.AddScoped<IAdminRoomTypeRepository, AdminRoomTypeRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+builder.Services.AddScoped<IFavouriteRepository, FavouriteRepository>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+
 
 // Register Services
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -90,6 +131,27 @@ builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IHotelService, HotelService>();
 builder.Services.AddScoped<IFacilityService, FacilityService>();
 builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<IVnPayService, VnPayService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<IAdminCityService, AdminCityService>();
+builder.Services.AddScoped<IAdminHotelService, AdminHotelService>();
+builder.Services.AddScoped<IAdminRoomService, AdminRoomService>();
+builder.Services.AddScoped<IAdminFacilityService, AdminFacilityService>();
+builder.Services.AddScoped<IAdminReservationService, AdminReservationService>();
+builder.Services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<IAdminRoomTypeService, AdminRoomTypeService>();
+builder.Services.AddSingleton<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IFavouriteService, FavouriteService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IAdminDashboardExportService, AdminDashboardExportService>();
+builder.Services.AddSignalR();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<RoomContextService>();
+builder.Services.AddScoped<ChatBotService>();
 
 // 4. Thêm Authorization
 builder.Services.AddAuthorization();
@@ -135,7 +197,9 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000",
                 "http://localhost:5173",
                 "https://localhost:3000",
-                "https://localhost:5173"
+                "https://localhost:5173",
+                "https://fe-booking-hotel-public.vercel.app",
+                "https://fe-booking-hotel.vercel.app"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -144,6 +208,16 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 50 * 1024 * 1024;
+});
+
+builder.Services.AddHttpClient("Ollama", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Ollama:BaseUrl"] ?? "http://localhost:11434");
+    client.Timeout = TimeSpan.FromMinutes(5); // LLM có thể chậm
+});
 
 var app = builder.Build();
 
@@ -170,17 +244,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// QUAN TR?NG: Session ph?i tr??c Authentication
-
 app.UseCors("AllowAll");
 app.UseSession();
-
-// QUAN TRONG: Thu tu phai dúng
-app.UseAuthentication();  // Ph?i ??t tr??c UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chatHub");
+app.MapHub<NotificationHub>("/hubs/notification");
 
 app.Run();
 

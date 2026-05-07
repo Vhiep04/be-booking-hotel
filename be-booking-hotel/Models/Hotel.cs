@@ -30,4 +30,5 @@ public partial class Hotel
     public virtual ICollection<HotelImage> HotelImages { get; set; } = new List<HotelImage>();
 
     public virtual ICollection<Room> Rooms { get; set; } = new List<Room>();
+    public virtual ICollection<RoomType> RoomTypes { get; set; } = new List<RoomType>();
 }

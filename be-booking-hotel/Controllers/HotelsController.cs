@@ -105,38 +105,53 @@ namespace be_booking_hotel.Controllers
         /// <param name="id">Hotel ID</param>
         /// <returns>List of rooms</returns>
         [HttpGet("{id}/rooms")]
-        public async Task<IActionResult> GetHotelRooms(int id)
+        public async Task<IActionResult> GetHotelRooms(
+            int id,
+            [FromQuery] DateOnly? checkIn,
+            [FromQuery] DateOnly? checkOut)
         {
             try
             {
-                var rooms = await _hotelService.GetHotelRoomsAsync(id);
-
+                var rooms = await _hotelService.GetHotelRoomsAsync(id, checkIn, checkOut);
                 if (rooms == null)
-                {
-                    return NotFound(new
-                    {
-                        success = false,
-                        message = $"Hotel with ID {id} not found"
-                    });
-                }
+                    return NotFound(new { success = false, message = $"Hotel with ID {id} not found" });
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Hotel rooms retrieved successfully",
-                    data = rooms
-                });
+                return Ok(new { success = true, message = "Hotel rooms retrieved successfully", data = rooms });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting rooms for hotel {HotelId}", id);
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = "An error occurred while retrieving hotel rooms",
-                    error = ex.Message
-                });
+                return StatusCode(500, new { success = false, message = "An error occurred", error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Lấy chi tiết 1 room của hotel
+        /// </summary>
+        /// <param name="id">Hotel ID</param>
+        /// <param name="roomId">Room ID</param>
+        /// <returns>Room detail</returns>
+        /// 
+        [HttpGet("{id}/rooms/{roomId}")]
+        public async Task<IActionResult> GetRoomById(
+            int id,
+            int roomId,
+            [FromQuery] DateOnly? checkIn,
+            [FromQuery] DateOnly? checkOut)
+        {
+                try
+                {
+                    var room = await _hotelService.GetRoomByIdAsync(id, roomId, checkIn, checkOut);
+                    if (room == null)
+                        return NotFound(new { success = false, message = $"Room {roomId} not found in hotel {id}" });
+
+                    return Ok(new { success = true, message = "Room details retrieved successfully", data = room });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error getting room {RoomId} for hotel {HotelId}", roomId, id);
+                    return StatusCode(500, new { success = false, message = "An error occurred", error = ex.Message });
+                }
         }
     }
 }

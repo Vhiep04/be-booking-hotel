@@ -9,5 +9,6 @@ public partial class Facility
 
     public string Name { get; set; } = null!;
 
-    public virtual ICollection<Room> Rooms { get; set; } = new List<Room>();
+    public virtual ICollection<RoomType> RoomTypes { get; set; } = new List<RoomType>();
+
 }

@@ -12,5 +12,7 @@ namespace be_booking_hotel.Repositories.Interfaces
         Task<IdentityResult> AddToRoleAsync(ApplicationUser user, string role);
         Task<SignInResult> CheckPasswordSignInAsync(ApplicationUser user, string password);
         Task<IList<string>> GetRolesAsync(ApplicationUser user);
+        Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
+        Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
     }
 }

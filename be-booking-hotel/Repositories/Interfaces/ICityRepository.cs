@@ -15,5 +15,7 @@ namespace be_booking_hotel.Repositories.Interfaces
         Task<List<CityImage>> GetCityImagesAsync(int cityId);
         Task<List<HotelImage>> GetHotelImagesAsync(int hotelId);
         Task<List<Hotel>> GetAllHotelsAsync();
+        Task<List<RoomType>> GetAllRoomTypesAsync();
+        Task<List<string>> GetDistinctRoomTypeNamesAsync();
     }
 }

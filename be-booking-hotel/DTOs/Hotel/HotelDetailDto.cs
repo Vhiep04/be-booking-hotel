@@ -23,10 +23,18 @@
         public RatingDistribution RatingDistribution { get; set; } = new();
 
         public int TotalRooms { get; set; }
-        public List<string> RoomTypes { get; set; } = new();
+        public List<RoomTypeDto> RoomTypes { get; set; } = new();
         public List<string> Facilities { get; set; } = new();
 
         public List<FeedbackDto> RecentFeedbacks { get; set; } = new();
+        public List<HotelImageDto> Images { get; set; } = new();
+    }
+
+    public class HotelImageDto
+    {
+        public string ImageUrl { get; set; } = string.Empty;
+        public bool IsPrimary { get; set; }
+        public int DisplayOrder { get; set; }
     }
 
     public class CityDto

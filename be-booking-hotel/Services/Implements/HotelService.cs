@@ -1,4 +1,5 @@
 ﻿using be_booking_hotel.DTOs.Hotel;
+using be_booking_hotel.Models;
 using be_booking_hotel.Repositories.Interfaces;
 using be_booking_hotel.Services.Interfaces;
 
@@ -35,12 +36,12 @@ namespace be_booking_hotel.Services.Implements
                 CityId = h.CityId,
                 CityName = h.City.Name,
                 Country = h.City.Country,
-                MinPrice = h.Rooms.Any() ? h.Rooms.Min(r => r.PricePerNight) : 0,
-                MaxPrice = h.Rooms.Any() ? h.Rooms.Max(r => r.PricePerNight) : 0,
+                MinPrice = h.RoomTypes.Any() ? h.RoomTypes.Min(r => r.PricePerNight) : 0,
+                MaxPrice = h.RoomTypes.Any() ? h.RoomTypes.Max(r => r.PricePerNight) : 0,
                 AverageRating = h.Feedbacks.Any() ? h.Feedbacks.Average(f => f.Rating) : null,
                 TotalReviews = h.Feedbacks.Count,
-                TotalRooms = h.Rooms.Count,
-                AvailableRooms = h.Rooms.Count, // TODO: Calculate based on reservations
+                TotalRooms = h.RoomTypes.Count,
+                AvailableRooms = h.RoomTypes.Count, // TODO: Calculate based on reservations
                 CreatedAt = h.CreatedAt
             }).ToList();
 
@@ -82,8 +83,8 @@ namespace be_booking_hotel.Services.Implements
                     Longitude = hotel.City.Longitude
                 },
 
-                MinPrice = hotel.Rooms.Any() ? hotel.Rooms.Min(r => r.PricePerNight) : 0,
-                MaxPrice = hotel.Rooms.Any() ? hotel.Rooms.Max(r => r.PricePerNight) : 0,
+                MinPrice = hotel.RoomTypes.Any() ? hotel.RoomTypes.Min(r => r.PricePerNight) : 0,
+                MaxPrice = hotel.RoomTypes.Any() ? hotel.RoomTypes.Max(r => r.PricePerNight) : 0,
 
                 AverageRating = hotel.Feedbacks.Any() ? hotel.Feedbacks.Average(f => f.Rating) : null,
                 TotalReviews = hotel.Feedbacks.Count,
@@ -97,10 +98,17 @@ namespace be_booking_hotel.Services.Implements
                     OneStar = ratingDist[1]
                 },
 
-                TotalRooms = hotel.Rooms.Count,
-                RoomTypes = hotel.Rooms.Select(r => r.RoomType).Distinct().ToList(),
+                TotalRooms = hotel.RoomTypes.Count,
+                RoomTypes = hotel.RoomTypes.Select(rt => new RoomTypeDto
+                {
+                    RoomTypeId = rt.RoomTypeId,
+                    TypeName = rt.TypeName,
+                    PricePerNight = rt.PricePerNight,
+                    Capacity = rt.Capacity,
+                    ImgUrl = rt.ImgUrl
+                }).ToList(),
 
-                Facilities = hotel.Rooms
+                Facilities = hotel.RoomTypes
                     .SelectMany(r => r.Facilities.Select(f => f.Name))
                     .Distinct()
                     .ToList(),
@@ -108,17 +116,51 @@ namespace be_booking_hotel.Services.Implements
                 RecentFeedbacks = feedbacks.Select(f => new FeedbackDto
                 {
                     FeedbackId = f.FeedbackId,
-                    UserName = "Anonymous", // TODO: Get from User
+                    UserName = "Anonymous",
                     Rating = f.Rating,
                     Comment = f.Comment,
                     CreatedAt = f.CreatedAt
-                }).ToList()
+                }).ToList(),
+                Images = hotel.HotelImages
+                .OrderBy(i => i.DisplayOrder)
+                .Select(i => new HotelImageDto
+                {
+                    ImageUrl = i.ImageUrl,
+                    IsPrimary = i.IsPrimary ?? false,
+                    DisplayOrder = i.DisplayOrder ?? 0
+                }).ToList(),
             };
 
             return hotelDetail;
         }
 
-        public async Task<RoomListDto?> GetHotelRoomsAsync(int hotelId)
+        public async Task<RoomDto?> GetRoomByIdAsync(int hotelId, int roomId)
+        {
+            var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
+            if (!hotelExists)
+                return null;
+
+            var room = await _hotelRepository.GetRoomByIdAsync(hotelId, roomId);
+            if (room == null)
+                return null;
+
+            return new RoomDto
+            {
+                RoomId = room.RoomId,
+                HotelId = room.HotelId,
+
+                RoomType = room.RoomType?.TypeName ?? "",
+                PricePerNight = room.RoomType?.PricePerNight ?? 0,
+                Capacity = room.RoomType?.Capacity ?? 0,
+                ImgUrl = room.RoomType?.ImgUrl,
+                Facilities = room.RoomType?.Facilities?.Select(f => f.Name).ToList() ?? new(),
+
+                IsAvailable = true,
+                BookedDays = 0
+            };
+        }
+
+        public async Task<RoomListDto?> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null)
         {
             var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
             if (!hotelExists)
@@ -127,37 +169,90 @@ namespace be_booking_hotel.Services.Implements
             var hotel = await _hotelRepository.GetHotelByIdAsync(hotelId);
             var rooms = await _hotelRepository.GetHotelRoomsAsync(hotelId);
 
-            var roomDtos = rooms.Select(r => new RoomDto
+            var roomDtos = rooms.Select(r =>
             {
-                RoomId = r.RoomId,
-                HotelId = r.HotelId,
-                RoomType = r.RoomType,
-                PricePerNight = r.PricePerNight,
-                Capacity = r.Capacity,
-                ImgUrl = r.ImgUrl,
-                Facilities = r.Facilities.Select(f => f.Name).ToList(),
-                IsAvailable = true, // TODO: Check reservations
-                BookedDays = 0 // TODO: Calculate from reservations
+                // ✅ Check availability theo Status + Reservation overlap
+                bool isAvailable = IsRoomAvailable(r, checkIn, checkOut);
+
+                return new RoomDto
+                {
+                    RoomId = r.RoomId,
+                    HotelId = r.HotelId,
+                    RoomType = r.RoomType?.TypeName ?? "",
+                    PricePerNight = r.RoomType?.PricePerNight ?? 0,
+                    Capacity = r.RoomType?.Capacity ?? 0,
+                    ImgUrl = r.RoomType?.ImgUrl,
+                    Facilities = r.RoomType?.Facilities?.Select(f => f.Name).ToList() ?? new(),
+                    IsAvailable = isAvailable,
+                    BookedDays = r.Reservations?.Count(res =>
+                        res.PaymentStatus != "Cancelled") ?? 0
+                };
             }).ToList();
 
             var roomList = new RoomListDto
             {
                 HotelId = hotelId,
                 HotelName = hotel!.Name,
-
                 HotelLocation = hotel.Location,
                 HotelDescription = hotel.Description,
                 HotelLatitude = hotel.Latitude,
                 HotelLongitude = hotel.Longitude,
-
                 Rooms = roomDtos,
-                TotalRooms = roomDtos.Count,
-                AvailableRooms = roomDtos.Count(r => r.IsAvailable),
+                TotalRooms = roomDtos.Count(),
+                AvailableRooms = roomDtos.Count(r => r.IsAvailable), // ✅ Tính đúng
                 MinPrice = roomDtos.Any() ? roomDtos.Min(r => r.PricePerNight) : 0,
                 MaxPrice = roomDtos.Any() ? roomDtos.Max(r => r.PricePerNight) : 0
             };
 
             return roomList;
+        }
+
+        public async Task<RoomDto?> GetRoomByIdAsync(int hotelId, int roomId, DateOnly? checkIn = null, DateOnly? checkOut = null)
+        {
+            var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
+            if (!hotelExists)
+                return null;
+
+            var room = await _hotelRepository.GetRoomByIdAsync(hotelId, roomId);
+            if (room == null)
+                return null;
+
+            return new RoomDto
+            {
+                RoomId = room.RoomId,
+                HotelId = room.HotelId,
+                RoomType = room.RoomType?.TypeName ?? "",
+                PricePerNight = room.RoomType?.PricePerNight ?? 0,
+                Capacity = room.RoomType?.Capacity ?? 0,
+                ImgUrl = room.RoomType?.ImgUrl,
+                Facilities = room.RoomType?.Facilities?.Select(f => f.Name).ToList() ?? new(),
+                IsAvailable = IsRoomAvailable(room, checkIn, checkOut),
+                BookedDays = room.Reservations?.Count(res =>
+                    res.PaymentStatus != "Cancelled") ?? 0
+            };
+        }
+
+        // ✅ Helper: tính availability
+        private static bool IsRoomAvailable(Room room, DateOnly? checkIn, DateOnly? checkOut)
+        {
+            // Nếu phòng đang bảo trì → không available bất kể ngày
+            if (room.Status == "Maintenance")
+                return false;
+
+            // Nếu có truyền ngày → check overlap reservation (bỏ qua Status)
+            if (checkIn.HasValue && checkOut.HasValue)
+            {
+                bool hasConflict = room.Reservations?.Any(res =>
+                    res.PaymentStatus != "Cancelled" &&
+                    checkIn.Value < res.CheckOutDate &&
+                    checkOut.Value > res.CheckInDate
+                ) ?? false;
+
+                return !hasConflict;
+            }
+
+            // Không truyền ngày → dùng Status thuần
+            return room.Status == "Available";
         }
     }
 }

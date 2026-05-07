@@ -11,10 +11,10 @@ namespace be_booking_hotel.Repositories.Interfaces
         
         /// Lấy chi tiết hotel theo ID
         Task<Hotel?> GetHotelByIdAsync(int hotelId);
-        
+
         /// Lấy danh sách rooms của hotel
-        Task<List<Room>> GetHotelRoomsAsync(int hotelId);
-        
+        Task<List<Room>> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null);
+
         /// Kiểm tra hotel có tồn tại không
         Task<bool> HotelExistsAsync(int hotelId);
         
@@ -23,5 +23,6 @@ namespace be_booking_hotel.Repositories.Interfaces
 
         /// Tính rating distribution
         Task<Dictionary<int, int>> GetRatingDistributionAsync(int hotelId);
+        Task<Room?> GetRoomByIdAsync(int hotelId, int roomId);
     }
 }

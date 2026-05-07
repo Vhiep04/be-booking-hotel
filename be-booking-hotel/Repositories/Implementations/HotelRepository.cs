@@ -22,7 +22,7 @@ namespace be_booking_hotel.Repositories.Implementations
         {
             var query = _context.Hotels
                 .Include(h => h.City)
-                .Include(h => h.Rooms)
+                .Include(h => h.RoomTypes)
                 .Include(h => h.Feedbacks)
                 .AsQueryable();
 
@@ -52,7 +52,7 @@ namespace be_booking_hotel.Repositories.Implementations
             if (filter.MinPrice.HasValue || filter.MaxPrice.HasValue)
             {
                 query = query.Where(h =>
-                    h.Rooms.Any(r =>
+                    h.RoomTypes.Any(r =>
                         (!filter.MinPrice.HasValue || r.PricePerNight >= filter.MinPrice.Value) &&
                         (!filter.MaxPrice.HasValue || r.PricePerNight <= filter.MaxPrice.Value)
                     )
@@ -74,8 +74,8 @@ namespace be_booking_hotel.Repositories.Implementations
             // Sorting
             query = filter.SortBy?.ToLower() switch
             {
-                "price_asc" => query.OrderBy(h => h.Rooms.Min(r => r.PricePerNight)),
-                "price_desc" => query.OrderByDescending(h => h.Rooms.Min(r => r.PricePerNight)),
+                "price_asc" => query.OrderBy(h => h.RoomTypes.Min(r => r.PricePerNight)),
+                "price_desc" => query.OrderByDescending(h => h.RoomTypes.Min(r => r.PricePerNight)),
                 "rating" => query.OrderByDescending(h => h.Feedbacks.Any() ? h.Feedbacks.Average(f => f.Rating) : 0),
                 "name" => query.OrderBy(h => h.Name),
                 _ => query.OrderByDescending(h => h.CreatedAt) // Default: newest first
@@ -94,18 +94,20 @@ namespace be_booking_hotel.Repositories.Implementations
         {
             return await _context.Hotels
                 .Include(h => h.City)
-                .Include(h => h.Rooms)
+                .Include(h => h.RoomTypes)
                     .ThenInclude(r => r.Facilities)
                 .Include(h => h.Feedbacks)
+                .Include(h => h.HotelImages)
                 .FirstOrDefaultAsync(h => h.HotelId == hotelId);
         }
 
-        public async Task<List<Room>> GetHotelRoomsAsync(int hotelId)
+        public async Task<List<Room>> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null)
         {
             return await _context.Rooms
-                .Include(r => r.Facilities)
+                .Include(r => r.RoomType.Facilities)
+                .Include(r => r.Reservations)
                 .Where(r => r.HotelId == hotelId)
-                .OrderBy(r => r.PricePerNight)
+                .OrderBy(r => r.RoomType.PricePerNight)
                 .ToListAsync();
         }
 
@@ -142,6 +144,14 @@ namespace be_booking_hotel.Repositories.Implementations
             }
 
             return distribution;
+        }
+
+        public async Task<Room?> GetRoomByIdAsync(int hotelId, int roomId)
+        {
+            return await _context.Rooms
+                .Include(r => r.RoomType.Facilities)
+                .Include(r => r.Reservations)
+                .FirstOrDefaultAsync(r => r.HotelId == hotelId && r.RoomId == roomId);
         }
     }
 }
