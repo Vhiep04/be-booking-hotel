@@ -197,7 +197,9 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000",
                 "http://localhost:5173",
                 "https://localhost:3000",
-                "https://localhost:5173"
+                "https://localhost:5173",
+                "https://fe-booking-hotel-public.vercel.app",
+                "https://fe-booking-hotel.vercel.app"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()

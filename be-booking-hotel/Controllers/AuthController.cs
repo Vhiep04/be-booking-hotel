@@ -89,7 +89,7 @@ namespace be_booking_hotel.Controllers
                     return Ok(new
                     {
                         success = true,
-                        message = "Email already registered but not verified. New OTP has been sent.",
+                        message = "OTP sent to email.",
                         data = new
                         {
                             email = existingUser.Email,
@@ -98,10 +98,10 @@ namespace be_booking_hotel.Controllers
                     });
                 }
 
-                return BadRequest(new
+                return Conflict(new
                 {
                     success = false,
-                    message = "Email already registered and verified"
+                    message = "Địa chỉ Email đã được sử dụng"
                 });
             }
 
