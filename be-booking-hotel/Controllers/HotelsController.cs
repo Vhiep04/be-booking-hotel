@@ -106,16 +106,16 @@ namespace be_booking_hotel.Controllers
         /// <returns>List of rooms</returns>
         [HttpGet("{id}/rooms")]
         public async Task<IActionResult> GetHotelRooms(
-            int id,
-            [FromQuery] DateOnly? checkIn,
-            [FromQuery] DateOnly? checkOut)
+        int id,
+        [FromQuery] DateOnly? checkIn,
+        [FromQuery] DateOnly? checkOut,
+        [FromQuery] string? roomType)
         {
             try
             {
-                var rooms = await _hotelService.GetHotelRoomsAsync(id, checkIn, checkOut);
+                var rooms = await _hotelService.GetHotelRoomsAsync(id, checkIn, checkOut, roomType);
                 if (rooms == null)
                     return NotFound(new { success = false, message = $"Hotel with ID {id} not found" });
-
                 return Ok(new { success = true, message = "Hotel rooms retrieved successfully", data = rooms });
             }
             catch (Exception ex)

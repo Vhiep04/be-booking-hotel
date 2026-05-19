@@ -101,12 +101,25 @@ namespace be_booking_hotel.Repositories.Implementations
                 .FirstOrDefaultAsync(h => h.HotelId == hotelId);
         }
 
-        public async Task<List<Room>> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null)
+        public async Task<List<Room>> GetHotelRoomsAsync(
+        int hotelId,
+        DateOnly? checkIn = null,
+        DateOnly? checkOut = null,
+        string? roomType = null)
         {
-            return await _context.Rooms
+            var query = _context.Rooms
                 .Include(r => r.RoomType.Facilities)
                 .Include(r => r.Reservations)
-                .Where(r => r.HotelId == hotelId)
+                .Where(r => r.HotelId == hotelId);
+
+            if (!string.IsNullOrWhiteSpace(roomType))
+            {
+                query = query.Where(r =>
+                    r.RoomType != null &&
+                    r.RoomType.TypeName.Contains(roomType));
+            }
+
+            return await query
                 .OrderBy(r => r.RoomType.PricePerNight)
                 .ToListAsync();
         }

@@ -160,18 +160,21 @@ namespace be_booking_hotel.Services.Implements
             };
         }
 
-        public async Task<RoomListDto?> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null)
+        public async Task<RoomListDto?> GetHotelRoomsAsync(
+        int hotelId,
+        DateOnly? checkIn = null,
+        DateOnly? checkOut = null,
+        string? roomType = null)
         {
             var hotelExists = await _hotelRepository.HotelExistsAsync(hotelId);
             if (!hotelExists)
                 return null;
 
             var hotel = await _hotelRepository.GetHotelByIdAsync(hotelId);
-            var rooms = await _hotelRepository.GetHotelRoomsAsync(hotelId);
+            var rooms = await _hotelRepository.GetHotelRoomsAsync(hotelId, checkIn, checkOut, roomType);
 
             var roomDtos = rooms.Select(r =>
             {
-                // ✅ Check availability theo Status + Reservation overlap
                 bool isAvailable = IsRoomAvailable(r, checkIn, checkOut);
 
                 return new RoomDto
@@ -189,7 +192,7 @@ namespace be_booking_hotel.Services.Implements
                 };
             }).ToList();
 
-            var roomList = new RoomListDto
+            return new RoomListDto
             {
                 HotelId = hotelId,
                 HotelName = hotel!.Name,
@@ -198,13 +201,11 @@ namespace be_booking_hotel.Services.Implements
                 HotelLatitude = hotel.Latitude,
                 HotelLongitude = hotel.Longitude,
                 Rooms = roomDtos,
-                TotalRooms = roomDtos.Count(),
-                AvailableRooms = roomDtos.Count(r => r.IsAvailable), // ✅ Tính đúng
+                TotalRooms = roomDtos.Count,
+                AvailableRooms = roomDtos.Count(r => r.IsAvailable),
                 MinPrice = roomDtos.Any() ? roomDtos.Min(r => r.PricePerNight) : 0,
                 MaxPrice = roomDtos.Any() ? roomDtos.Max(r => r.PricePerNight) : 0
             };
-
-            return roomList;
         }
 
         public async Task<RoomDto?> GetRoomByIdAsync(int hotelId, int roomId, DateOnly? checkIn = null, DateOnly? checkOut = null)

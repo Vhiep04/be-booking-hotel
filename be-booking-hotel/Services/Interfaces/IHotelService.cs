@@ -8,7 +8,7 @@ namespace be_booking_hotel.Services.Interfaces
         Task<HotelDetailDto?> GetHotelDetailAsync(int hotelId);
 
         // ✅ Thêm checkIn, checkOut với default null (optional)
-        Task<RoomListDto?> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null);
+        Task<RoomListDto?> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null, string? roomType = null);
 
         Task<RoomDto?> GetRoomByIdAsync(int hotelId, int roomId, DateOnly? checkIn = null, DateOnly? checkOut = null);
     }

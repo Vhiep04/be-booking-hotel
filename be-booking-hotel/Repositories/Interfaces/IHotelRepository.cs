@@ -13,7 +13,7 @@ namespace be_booking_hotel.Repositories.Interfaces
         Task<Hotel?> GetHotelByIdAsync(int hotelId);
 
         /// Lấy danh sách rooms của hotel
-        Task<List<Room>> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null);
+        Task<List<Room>> GetHotelRoomsAsync(int hotelId, DateOnly? checkIn = null, DateOnly? checkOut = null, string? roomType = null);
 
         /// Kiểm tra hotel có tồn tại không
         Task<bool> HotelExistsAsync(int hotelId);
