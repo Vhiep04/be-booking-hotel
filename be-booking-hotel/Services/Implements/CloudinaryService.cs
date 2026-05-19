@@ -58,7 +58,7 @@ namespace be_booking_hotel.Services.Implements
                     File = new FileDescription(file.FileName, stream),
                     Folder = folder,
                     Transformation = new Transformation().Quality("auto").FetchFormat("auto"),
-                    PublicId = $"{folder}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+                    PublicId = $"{folder}_{Guid.NewGuid():N}",
                     Overwrite = false
                 };
 
