@@ -21,13 +21,11 @@ namespace be_booking_hotel.Services.Implements
         }
 
         
-        // HELPER: lưu DB + push realtime cùng lúc
         
         private async Task SendToUser(string userId, Notification noti)
         {
             await _repo.AddAsync(noti);
 
-            // Gửi DTO thay vì entity — tránh circular reference
             var dto = new NotificationDto
             {
                 NotificationId = noti.NotificationId,
@@ -81,7 +79,7 @@ namespace be_booking_hotel.Services.Implements
         
         public async Task NotifyNewBooking(Reservation reservation)
         {
-            // → Admin
+            // Admin
             await SendToAdmin(new Notification
             {
                 IsAdminNotification = true,
@@ -91,7 +89,7 @@ namespace be_booking_hotel.Services.Implements
                 ReservationId = reservation.ReservationId
             });
 
-            // → User
+            // User
             await SendToUser(reservation.UserId, new Notification
             {
                 UserId = reservation.UserId,
@@ -133,7 +131,6 @@ namespace be_booking_hotel.Services.Implements
         {
             if (cancelledByUser)
             {
-                // Chỉ báo admin
                 await SendToAdmin(new Notification
                 {
                     IsAdminNotification = true,
@@ -145,7 +142,6 @@ namespace be_booking_hotel.Services.Implements
             }
             else
             {
-                // Admin huỷ → báo user
                 await SendToUser(reservation.UserId, new Notification
                 {
                     UserId = reservation.UserId,
@@ -191,7 +187,7 @@ namespace be_booking_hotel.Services.Implements
             {
                 UserId = userId,
                 Type = NotificationType.PaymentSuccess,
-                Title = "Thanh toán thành công ✅",
+                Title = "Thanh toán thành công",
                 Message = $"Thanh toán {payment.Amount:N0}đ cho booking #{payment.ReservationId} thành công.",
                 ReservationId = payment.ReservationId
             });
@@ -205,7 +201,7 @@ namespace be_booking_hotel.Services.Implements
             {
                 UserId = userId,
                 Type = NotificationType.PaymentFailed,
-                Title = "Thanh toán thất bại ❌",
+                Title = "Thanh toán thất bại",
                 Message = $"Thanh toán cho booking #{payment.ReservationId} thất bại. Vui lòng thử lại.",
                 ReservationId = payment.ReservationId
             });
