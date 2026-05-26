@@ -45,8 +45,6 @@ namespace be_booking_hotel.Controllers
         }
 
         
-        /// Đăng ký tài khoản mới - Gửi OTP qua email
-        
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
